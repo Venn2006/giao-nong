@@ -11,7 +11,8 @@ import {
   Package, 
   Car, 
   ShoppingBag, 
-  Utensils 
+  Utensils,
+  Truck // <--- ÁC MỘNG LÀ ĐÂY, NÃY TAO QUÊN IMPORT CÁI NÀY LÀM VERCEL NÓ CHỬI
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -65,7 +66,7 @@ export default function DonHangPage() {
     if (status === 'cancelled') {
       return { text: 'Đã hủy', color: 'text-gray-500', bg: 'bg-gray-100 border-gray-200', icon: XCircle };
     }
-    // Các trạng thái đang giao (tx1, at_midpoint, tx2)
+    // Các trạng thái đang giao (tx1_picking, at_midpoint, tx2_delivering)
     return { text: 'Đang thực hiện', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: Truck }; 
   };
 
