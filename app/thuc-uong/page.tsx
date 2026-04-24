@@ -121,7 +121,7 @@ export default function ThucUongMenu() {
 
   const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
 
-  if (isLoading) return <div className="min-h-screen bg-[#fcfaf1] flex flex-col items-center justify-center max-w-md mx-auto"><Loader2 className="animate-spin text-blue-500 mb-4" size={40} /></div>;
+  if (isLoading) return <div className="min-h-screen bg-[#fcfaf1] flex flex-col items-center justify-center max-w-md mx-auto"><Loader2 className="animate-spin text-blue-600 mb-4" size={40} /></div>;
 
   return (
     <div className="min-h-screen bg-[#fcfaf1] pb-24 font-sans max-w-md mx-auto shadow-2xl relative">
@@ -132,7 +132,7 @@ export default function ThucUongMenu() {
         </div>
       )}
 
-      {/* HEADER KÈM THANH ĐIỀU HƯỚNG THẦN TỐC */}
+      {/* HEADER KÈM THANH ĐIỀU HƯỚNG */}
       <div className="sticky top-0 z-20 bg-white rounded-b-2xl shadow-sm">
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ export default function ThucUongMenu() {
           </div>
         )}
 
-        {/* POPUP PHA CHẾ ÉP MÀU CHỮ DARK MODE */}
+        {/* POPUP PHA CHẾ */}
         {quanDangChon && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center animate-in fade-in max-w-md mx-auto">
             <div className="bg-white w-full rounded-t-[2.5rem] p-6 slide-in-from-bottom-full duration-300 max-h-[90vh] overflow-y-auto">
