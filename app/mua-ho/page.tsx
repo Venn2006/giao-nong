@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Navigation, ShoppingBag, Store, User, Phone, Banknote, FileText, Loader2, Info } from "lucide-react";
+import { ArrowLeft, MapPin, ShoppingBag, Store, User, Phone, Banknote, Loader2, Info, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -18,7 +18,16 @@ export default function MuaHoPage() {
   const [storeName, setStoreName] = useState("");
   const [estimatedPrice, setEstimatedPrice] = useState("");
 
-  const serviceFee = 20000; // Phí mua hộ + Ship mặc định 20k
+  const serviceFee = 20000; // Phí chạy mua hộ gom chuyến
+
+  const schedules = [
+    { id: 'sang', name: 'CA SÁNG', cutoff: '06:30', delivery: '07:00 - 08:00', cutoffHour: 6, cutoffMin: 30 },
+    { id: 'trua', name: 'CA TRƯA', cutoff: '10:00', delivery: '10:30 - 12:00', cutoffHour: 10, cutoffMin: 0 },
+    { id: 'chieu', name: 'CA CHIỀU', cutoff: '14:00', delivery: '14:30 - 16:00', cutoffHour: 14, cutoffMin: 0 },
+    { id: 'toi', name: 'CA TỐI', cutoff: '17:30', delivery: '18:00 - 19:30', cutoffHour: 17, cutoffMin: 30 },
+  ];
+
+  const [timeLeft, setTimeLeft] = useState<{ active: any }>({ active: schedules[0] });
 
   useEffect(() => {
     const savedUser = localStorage.getItem("giao_nong_user");
@@ -28,6 +37,27 @@ export default function MuaHoPage() {
       setUserPhone(parsedUser.phone || "");
       setDeliveryAddress(parsedUser.address || "");
     }
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      let activeSchedule = schedules[0];
+      let found = false;
+
+      for (let i = 0; i < schedules.length; i++) {
+        const cutoffDate = new Date();
+        cutoffDate.setHours(schedules[i].cutoffHour, schedules[i].cutoffMin, 0, 0);
+        if (now < cutoffDate) {
+          activeSchedule = schedules[i];
+          found = true;
+          break;
+        }
+      }
+      if (!found) activeSchedule = schedules[0];
+
+      setTimeLeft({ active: activeSchedule });
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const handleCreateOrder = async () => {
@@ -42,10 +72,10 @@ export default function MuaHoPage() {
     const orderId = "MH" + Math.floor(1000 + Math.random() * 9000); 
     
     const storeText = storeName ? `Mua tại: ${storeName}` : 'Mua ở đâu cũng được';
-    const estText = estimatedPrice ? `| Tiền hàng dự kiến: ${parseInt(estimatedPrice).toLocaleString('vi-VN')}đ` : '| Khách chưa báo tiền hàng';
+    const estText = estimatedPrice ? `| Dự kiến: ${parseInt(estimatedPrice).toLocaleString('vi-VN')}đ` : '| Khách chưa báo tiền hàng';
     
-    // Gắn tag MUA HỘ ĐA NĂNG
-    const summary = `🛍️ [MUA HỘ ĐA NĂNG] \n- Món cần mua: ${buyList} \n- ${storeText} ${estText}`;
+    // Gắn tag CA CHẠY để gom chung với Đồ ăn
+    const summary = `🛍️ [MUA HỘ ĐA NĂNG - ${timeLeft.active.name}] \n- Món cần mua: ${buyList} \n- ${storeText} ${estText}`;
     const fullAddress = `📍 GIAO ĐẾN: ${deliveryAddress}`;
 
     const newOrder = {
@@ -53,9 +83,9 @@ export default function MuaHoPage() {
       customer_name: userName,
       customer_phone: userPhone,
       delivery_address: fullAddress,
-      shipping_note: "Tài xế sẽ ứng tiền mua đồ trước, Khách thanh toán sau khi nhận hàng.",
+      shipping_note: "Gom chung chuyến Đồ Ăn. Tài xế ứng tiền mua trước.",
       items_summary: summary,
-      total_amount: serviceFee, // Tạm tính bằng phí dịch vụ
+      total_amount: serviceFee, // Tạm tính phí ship
       shipping_fee: serviceFee,
       payment_method: 'cash',
       status: 'pending'
@@ -75,20 +105,39 @@ export default function MuaHoPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-28 font-sans max-w-md mx-auto shadow-2xl relative">
       
-      {/* HEADER TÍM XỊN XÒ */}
       <header className="bg-gradient-to-r from-purple-700 to-purple-500 p-4 sticky top-0 z-20 shadow-md rounded-b-[2rem]">
         <div className="flex items-center gap-3 text-white mb-2">
           <button onClick={() => router.back()} className="p-2 rounded-full bg-white/20 active:scale-95"><ArrowLeft size={20} /></button>
           <div>
             <h1 className="text-xl font-black tracking-tight uppercase">Mua Hộ Đa Năng</h1>
-            <p className="text-xs font-medium text-purple-100 mt-0.5">Thuốc tây, tạp hóa, đi chợ... Cứ để đó!</p>
+            <p className="text-xs font-medium text-purple-100 mt-0.5">Gom chuyến theo giờ - Phí siêu rẻ</p>
           </div>
         </div>
       </header>
 
       <div className="p-4 space-y-4 -mt-4 relative z-10">
         
-        {/* NỘI DUNG MUA HỘ */}
+        {/* CARD THÔNG BÁO KHUNG GIỜ */}
+        <div className="bg-purple-50 border border-purple-200 p-4 rounded-[2rem] shadow-sm mb-4">
+          <div className="flex items-center gap-2 mb-2">
+             <Clock size={18} className="text-purple-600"/>
+             <h2 className="font-black text-purple-800 text-sm uppercase tracking-wider">Chuyến gom tiếp theo</h2>
+          </div>
+          <p className="text-xs font-bold text-purple-700 leading-relaxed mb-3">
+            Đơn mua hộ sẽ được gom chạy chung chuyến với Đồ Ăn/Thức Uống để tiết kiệm chi phí cho Cô/Chú.
+          </p>
+          <div className="bg-white p-4 rounded-xl border border-purple-100 flex justify-between items-center shadow-sm">
+             <div>
+                <p className="font-black text-purple-700 text-lg">{timeLeft.active.name}</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Dự kiến phát: {timeLeft.active.delivery}</p>
+             </div>
+             <div className="text-right pl-3 border-l border-gray-100">
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">Chốt đơn lúc</p>
+                <p className="font-black text-red-500 text-lg">{timeLeft.active.cutoff}</p>
+             </div>
+          </div>
+        </div>
+
         <div className="bg-white p-5 rounded-[2.5rem] shadow-sm border border-gray-200">
            <div className="flex items-center gap-2 mb-4 border-b border-gray-100 pb-3">
              <ShoppingBag size={20} className="text-purple-600"/>
@@ -98,11 +147,11 @@ export default function MuaHoPage() {
            <div className="space-y-4">
              <div>
                <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Món đồ cần mua (*)</p>
-               <textarea value={buyList} onChange={(e) => setBuyList(e.target.value)} placeholder="Vd: 2 vỉ Panadol xanh, 1 chai dầu gió, nửa ký thịt ba rọi..." style={{ color: '#111827', backgroundColor: '#f9fafb' }} className="w-full p-4 border border-gray-200 rounded-2xl outline-purple-500 text-sm h-28 resize-none font-bold placeholder:text-gray-400"></textarea>
+               <textarea value={buyList} onChange={(e) => setBuyList(e.target.value)} placeholder="Vd: 2 vỉ Panadol xanh, 1 chai dầu gió..." style={{ color: '#111827', backgroundColor: '#f9fafb' }} className="w-full p-4 border border-gray-200 rounded-2xl outline-purple-500 text-sm h-28 resize-none font-bold placeholder:text-gray-400"></textarea>
              </div>
              
              <div>
-               <p className="text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Store size={12}/> Gợi ý tiệm mua (Nếu có)</p>
+               <p className="text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Store size={12}/> Gợi ý tiệm mua</p>
                <input type="text" value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="Vd: Nhà thuốc Ngọc Ánh ở đầu hẻm..." style={{ color: '#111827', backgroundColor: '#f9fafb' }} className="w-full p-3 border border-gray-200 rounded-xl outline-purple-500 text-sm font-bold placeholder:text-gray-400" />
              </div>
              
@@ -113,7 +162,6 @@ export default function MuaHoPage() {
            </div>
         </div>
 
-        {/* THÔNG TIN GIAO HÀNG */}
         <div className="bg-white p-5 rounded-[2.5rem] shadow-sm border border-gray-200">
            <h2 className="font-black text-gray-900 mb-4 text-sm uppercase tracking-wider flex items-center gap-2"><MapPin size={18} className="text-red-500"/> Giao hàng đến đâu?</h2>
            <div className="space-y-3">
@@ -130,7 +178,6 @@ export default function MuaHoPage() {
 
       </div>
 
-      {/* THANH CHỐT ĐƠN Ở ĐÁY */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto rounded-t-3xl z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div className="flex justify-between items-center mb-3 px-2">
            <span className="text-gray-500 font-bold text-sm">Phí chạy mua hộ:</span>
@@ -141,7 +188,7 @@ export default function MuaHoPage() {
           disabled={isSubmitting} 
           className="w-full bg-gradient-to-r from-purple-700 to-purple-500 text-white font-black text-lg py-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all shadow-lg shadow-purple-200"
         >
-          {isSubmitting ? <Loader2 className="animate-spin" /> : 'TÌM TÀI XẾ MUA HỘ'}
+          {isSubmitting ? <Loader2 className="animate-spin" /> : 'CHỐT ĐƠN MUA HỘ'}
         </button>
       </div>
     </div>
