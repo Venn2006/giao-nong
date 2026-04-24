@@ -4,7 +4,7 @@ import {
   MapPin, Phone, RefreshCw, Headset, 
   Layers, User, ClipboardList, CheckCircle2, 
   Truck, XCircle, Wallet, Info, Navigation, 
-  Package, Car 
+  Package, Car, ShoppingBag 
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -54,6 +54,7 @@ export default function BossDashboard() {
 
   const todayOrders = orders.filter(o => o.created_at.startsWith(todayStr));
   
+  // THỐNG KÊ DOANH THU & SỐ LƯỢNG
   const totalOrders = todayOrders.length;
   const completedOrders = todayOrders.filter(o => o.status === 'completed').length;
   const cancelledOrders = todayOrders.filter(o => o.status === 'cancelled').length;
@@ -135,12 +136,12 @@ export default function BossDashboard() {
             <h3 className="text-2xl font-black text-gray-900">{totalShippingRevenue.toLocaleString('vi-VN')}đ</h3>
           </div>
           <div className="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-sm">
-            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Tiền vốn Quán</p>
+            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Tiền vốn Quán / Thu hộ</p>
             <h3 className="text-2xl font-black text-gray-900">{totalFoodCost.toLocaleString('vi-VN')}đ</h3>
           </div>
         </div>
 
-        {/* BẢNG GIÁM SÁT ĐƠN HÀNG */}
+        {/* BẢNG GIÁM SÁT ĐƠN HÀNG CHUYÊN NGHIỆP */}
         <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden">
            <div className="p-6 border-b border-gray-100 bg-gray-50">
               <h2 className="font-black text-gray-800 text-lg flex items-center gap-2">
@@ -151,19 +152,27 @@ export default function BossDashboard() {
            <div className="divide-y divide-gray-100">
               {orders.map((order) => {
                 
-                // NHẬN DIỆN LOẠI ĐƠN
-                const isPackage = order.items_summary?.includes('[GIAO HÀNG]');
-                const isRide = order.items_summary?.includes('[ĐẶT XE]');
+                // BOSS NHẬN DIỆN ĐƯỢC 4 LOẠI ĐƠN HÀNG ĐỂ GIÁM SÁT
+                const summaryText = order.items_summary || "";
+                const isPackage = summaryText.includes('GIAO HÀNG');
+                const isRide = summaryText.includes('ĐẶT XE');
+                const isErrand = summaryText.includes('MUA HỘ');
+                const isFood = !isPackage && !isRide && !isErrand;
 
                 return (
-                  <div key={order.id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div key={order.id} className={`p-6 hover:bg-gray-50 transition-colors border-l-[6px] ${
+                    isPackage ? 'border-blue-400' : 
+                    isRide ? 'border-green-400' : 
+                    isErrand ? 'border-purple-400' : 'border-orange-400'
+                  }`}>
                     <div className="flex flex-col md:flex-row justify-between gap-6">
                       
                       <div className="flex-grow space-y-4">
                         
-                        {/* TRẠNG THÁI HIỂN THỊ ĐỒNG BỘ VỚI TÀI XẾ */}
+                        {/* HEADER HIỂN THỊ STATUS VÀ LOẠI ĐƠN */}
                         <div className="flex items-center gap-3">
                           <span className="text-lg font-black text-gray-900">{order.order_code}</span>
+                          
                           <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border-2 ${
                             order.status === 'pending' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
                             order.status === 'tx1_picking' ? 'bg-blue-50 text-blue-800 border-blue-200' :
@@ -173,17 +182,27 @@ export default function BossDashboard() {
                             'bg-green-50 text-green-800 border-green-200'
                           }`}>
                             {order.status === 'pending' && '🔴 ĐỢI TÀI XẾ NHẬN ĐƠN'}
-                            {order.status === 'tx1_picking' && (isPackage ? '📦 ĐANG GOM KIỆN HÀNG' : '🛵 ĐANG MUA TẠI QUÁN')}
-                            {order.status === 'at_midpoint' && '📍 2 TÀI XẾ ĐANG CHẠY GẶP NHAU'}
-                            {order.status === 'tx2_delivering' && (isPackage ? '🚚 ĐANG CHỞ KIỆN HÀNG' : isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG ĐI GIAO ĐỒ ĂN')}
+                            {order.status === 'tx1_picking' && (isPackage ? '📦 ĐANG GOM KIỆN HÀNG' : isErrand ? '🛍️ ĐANG ĐI MUA HỘ' : '🛵 ĐANG MUA TẠI QUÁN')}
+                            {order.status === 'at_midpoint' && '📍 2 TÀI XẾ ĐANG CHẠY GẶP NHAU (TRẠM)'}
+                            {order.status === 'tx2_delivering' && (isPackage ? '🚚 ĐANG CHỞ KIỆN HÀNG' : isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG ĐI GIAO ĐỒ')}
                             {order.status === 'cancelled' && '❌ ĐÃ HỦY'}
                             {order.status === 'completed' && '✅ ĐÃ HOÀN TẤT'}
                           </span>
                         </div>
+
+                        {/* NHÃN PHÂN LOẠI ĐƠN CỦA BOSS */}
+                        <div className="flex items-center">
+                           <span className={`text-[10px] font-black uppercase flex items-center gap-1 px-2 py-1 rounded bg-gray-100 ${
+                             isPackage ? 'text-blue-600' : isRide ? 'text-green-600' : isErrand ? 'text-purple-600' : 'text-orange-600'
+                           }`}>
+                             {isPackage ? <Package size={12}/> : isRide ? <Car size={12}/> : isErrand ? <ShoppingBag size={12}/> : <MapPin size={12}/>}
+                             {isPackage ? 'CHÀNH XE GOM TUYẾN' : isRide ? 'DỊCH VỤ XE ÔM/TAXI' : isErrand ? 'DỊCH VỤ MUA HỘ ĐA NĂNG' : 'ĐƠN GIAO ĐỒ ĂN/NƯỚC NÓNG'}
+                           </span>
+                        </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
-                            <User size={14} className="text-gray-400" /> {order.customer_name}
+                            <User size={14} className="text-gray-400" /> KH: {order.customer_name}
                           </div>
                           <div className="flex items-center gap-2 text-xs font-bold text-orange-600">
                             <Phone size={14} /> {order.customer_phone}
@@ -197,7 +216,7 @@ export default function BossDashboard() {
                         <div className="space-y-2">
                           <div className="flex items-start gap-2 text-xs font-bold text-gray-700 bg-gray-100 p-3 rounded-xl border border-gray-200">
                              <MapPin size={16} className="text-red-500 flex-shrink-0 mt-0.5" /> 
-                             <span className="whitespace-pre-line">{order.delivery_address}</span>
+                             <span className="whitespace-pre-line leading-relaxed">{order.delivery_address}</span>
                           </div>
                           
                           {order.shipping_note && (
@@ -210,18 +229,19 @@ export default function BossDashboard() {
                           {/* LINK BẢN ĐỒ CHUẨN XÁC DÀNH CHO BOSS */}
                           {order.gps_location && (
                             <a 
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${order.gps_location}&travelmode=driving`} 
+                              href={`http://googleusercontent.com/maps.google.com/maps?daddr=${order.gps_location}&travelmode=driving`} 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="flex items-center justify-center gap-2 bg-blue-50 text-blue-600 w-full py-3 rounded-xl transition-all active:scale-95 mt-2 border border-blue-200"
                             >
                               <Navigation size={16} />
-                              <span className="font-bold text-xs uppercase">Xem Bản Đồ (GPS)</span>
+                              <span className="font-bold text-xs uppercase">Xem Bản Đồ Khách Hàng (GPS)</span>
                             </a>
                           )}
                         </div>
                       </div>
 
+                      {/* QUẢN LÝ TIỀN BẠC VÀ HỦY ĐƠN */}
                       <div className="md:w-64 flex flex-col justify-between items-end border-l border-gray-100 pl-4">
                         <div className="text-right w-full">
                           <p className="text-3xl font-black text-gray-900">{order.total_amount?.toLocaleString('vi-VN')}đ</p>
@@ -233,12 +253,13 @@ export default function BossDashboard() {
                         </div>
 
                         <div className="w-full mt-8 space-y-3">
+                          {/* BOSS CHỈ CÓ QUYỀN HỦY ĐƠN, TÀI XẾ MỚI CÓ QUYỀN BẤM HOÀN THÀNH */}
                           {['pending', 'tx1_picking', 'at_midpoint'].includes(order.status) && (
                             <button 
                               onClick={() => updateStatus(order.id, 'cancelled')} 
                               className="w-full mt-3 text-[11px] text-red-500 font-bold uppercase tracking-wider hover:underline text-center block border border-red-100 py-3 rounded-lg bg-red-50 active:scale-95"
                             >
-                              Hủy bỏ đơn hàng này
+                              Boss Hủy bỏ đơn hàng này
                             </button>
                           )}
                         </div>

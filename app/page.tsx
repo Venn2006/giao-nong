@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { MapPin, Coffee, Utensils, Box, Car, ChevronRight, User, Phone, Zap, X, Save, Flame, MessageCircle, MessageSquare, Star, Clock } from "lucide-react";
+import { MapPin, Coffee, Utensils, Box, Car, ChevronRight, User, Phone, Zap, X, Save, Flame, MessageCircle, MessageSquare, Star, Clock, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -145,7 +145,54 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* BẢNG TỔNG HỢP 4 KHUNG GIỜ (MỚI THÊM) */}
+        {/* CỤM 5 NÚT DỊCH VỤ MỚI CHUYÊN NGHIỆP */}
+        <div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+             <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
+                <div className="bg-orange-50 p-4 rounded-full text-orange-600 shadow-inner">
+                  <Utensils size={28}/>
+                </div>
+                <span className="font-black text-gray-900 text-sm">ĐỒ ĂN</span>
+             </button>
+             
+             <button onClick={() => router.push('/thuc-uong')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
+                <div className="bg-orange-50 p-4 rounded-full text-orange-600 shadow-inner">
+                  <Coffee size={28}/>
+                </div>
+                <span className="font-black text-gray-900 text-sm">THỨC UỐNG</span>
+             </button>
+             
+             <button onClick={() => router.push('/giao-hang')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
+                <div className="bg-blue-50 p-4 rounded-full text-blue-600 shadow-inner">
+                  <Box size={28}/>
+                </div>
+                <span className="font-black text-gray-900 text-sm">GỬI HÀNG</span>
+             </button>
+             
+             <button onClick={() => router.push('/dat-xe')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
+                <div className="bg-green-50 p-4 rounded-full text-green-600 shadow-inner">
+                  <Car size={28}/>
+                </div>
+                <span className="font-black text-gray-900 text-sm">ĐẶT XE</span>
+             </button>
+          </div>
+
+          {/* NÚT MUA HỘ ĐA NĂNG NẰM NGANG SIÊU ĐẸP */}
+          <button onClick={() => router.push('/mua-ho')} className="w-full bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-200 active:scale-95 transition-all mb-2">
+             <div className="flex items-center gap-4">
+                <div className="bg-purple-50 p-3 rounded-full text-purple-600 shadow-inner">
+                  <ShoppingBag size={24}/>
+                </div>
+                <div className="text-left">
+                  <span className="font-black text-gray-900 text-sm block uppercase">Mua Hộ Đa Năng</span>
+                  <span className="text-[10px] text-gray-500 font-bold">Thuốc tây, đồ chợ, mỹ phẩm...</span>
+                </div>
+             </div>
+             <ChevronRight size={20} className="text-gray-400" />
+          </button>
+        </div>
+
+        {/* BẢNG TỔNG HỢP 4 KHUNG GIỜ */}
         <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-200">
           <h2 className="font-black text-gray-900 text-base mb-4 flex items-center gap-2 uppercase tracking-wider">
             <Clock className="text-orange-500" size={20} /> Lịch Giao Nóng Hôm Nay
@@ -172,37 +219,6 @@ export default function HomePage() {
                )
             })}
           </div>
-        </div>
-
-        {/* 4 NÚT DỊCH VỤ */}
-        <div className="grid grid-cols-2 gap-3">
-           <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-              <div className="bg-orange-50 p-4 rounded-full text-orange-600 shadow-inner">
-                <Utensils size={28}/>
-              </div>
-              <span className="font-black text-gray-900 text-sm">ĐỒ ĂN</span>
-           </button>
-           
-           <button onClick={() => router.push('/thuc-uong')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-              <div className="bg-orange-50 p-4 rounded-full text-orange-600 shadow-inner">
-                <Coffee size={28}/>
-              </div>
-              <span className="font-black text-gray-900 text-sm">THỨC UỐNG</span>
-           </button>
-           
-           <button onClick={() => router.push('/giao-hang')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-              <div className="bg-blue-50 p-4 rounded-full text-blue-600 shadow-inner">
-                <Box size={28}/>
-              </div>
-              <span className="font-black text-gray-900 text-sm">GIAO HÀNG</span>
-           </button>
-           
-           <button onClick={() => router.push('/dat-xe')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-              <div className="bg-green-50 p-4 rounded-full text-green-600 shadow-inner">
-                <Car size={28}/>
-              </div>
-              <span className="font-black text-gray-900 text-sm">ĐẶT XE</span>
-           </button>
         </div>
 
         {/* GỢI Ý NÓNG SỐT */}
@@ -304,7 +320,6 @@ export default function HomePage() {
           <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Messenger</span>
         </a>
       </div>
-
     </div>
   );
 }
