@@ -132,7 +132,7 @@ export default function MuaHoPage() {
                 <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Dự kiến phát: {timeLeft.active.delivery}</p>
              </div>
              <div className="text-right pl-3 border-l border-gray-100">
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">Chốt đơn lúc</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">Chốt đơn trước</p>
                 <p className="font-black text-red-500 text-lg">{timeLeft.active.cutoff}</p>
              </div>
           </div>
