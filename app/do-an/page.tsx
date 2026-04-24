@@ -12,15 +12,15 @@ export default function DoAnMenu() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // STATE GIỎ HÀNG TOÀN CỤC
+  const [cart, setCart] = useState<any[]>([]);
+
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [monDangChon, setMonDangChon] = useState<any>(null); 
   const [quanDangChon, setQuanDangChon] = useState<any>(null); 
   const [soLuong, setSoLuong] = useState(1);
-  
-  // STATE: GHI CHÚ CHO TỪNG MÓN
   const [ghiChuMon, setGhiChuMon] = useState("");
 
-  // STATE MỚI: DÀNH CHO FORM "MUA HỘ QUÁN TÙY CHỌN"
   const [showCustom, setShowCustom] = useState(false);
   const [customQuan, setCustomQuan] = useState("");
   const [customAddress, setCustomAddress] = useState("");
@@ -43,10 +43,13 @@ export default function DoAnMenu() {
   };
 
   useEffect(() => {
+    // Kéo giỏ hàng từ LocalStorage lên
+    const savedCart = localStorage.getItem("giao_nong_cart");
+    if (savedCart) setCart(JSON.parse(savedCart));
+
     const fetchMenu = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase.from('menu_items').select('*');
-      
+      const { data } = await supabase.from('menu_items').select('*');
       if (data) {
         setMenuItems(data);
         const categoriesMap = new Map();
@@ -60,12 +63,11 @@ export default function DoAnMenu() {
       }
       setIsLoading(false);
     };
-
     fetchMenu();
   }, []);
 
-  // CHỐT ĐƠN QUÁN CÓ SẴN
-  const handleCheckout = () => {
+  // THÊM VÀO GIỎ HÀNG (KHÔNG NHẢY TRANG)
+  const handleAddToCart = () => {
     const newItem = {
       id: Math.random().toString(),
       tenMon: monDangChon.name,
@@ -74,47 +76,41 @@ export default function DoAnMenu() {
       soLuong: soLuong,
       ghiChu: ghiChuMon
     };
+    const updatedCart = [...cart, newItem];
+    setCart(updatedCart);
+    localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart)); 
     
-    const existingCart = JSON.parse(localStorage.getItem("giao_nong_cart") || "[]");
-    localStorage.setItem("giao_nong_cart", JSON.stringify([...existingCart, newItem])); 
-    
-    router.push('/thanh-toan');
+    // Đóng Popup để Khách mua tiếp
+    setQuanDangChon(null);
+    setMonDangChon(null);
   };
 
-  // CHỐT ĐƠN QUÁN MUA HỘ (TỰ NHẬP)
-  const handleCheckoutCustom = () => {
-    if (!customQuan) {
-      alert("Cô/Chú vui lòng điền giúp con tên quán nha!");
-      return;
-    }
+  const handleAddCustomToCart = () => {
+    if (!customQuan) { alert("Cô/Chú vui lòng điền giúp con tên quán nha!"); return; }
     const newItem = {
       id: Math.random().toString(),
       tenMon: monDangChon.name,
       tenQuan: customQuan + (customAddress ? ` (${customAddress})` : ''),
-      gia: 35000, // Giá hiển thị tạm thời, Shipper mua xong cập nhật sau
+      gia: 35000, 
       soLuong: soLuong,
       ghiChu: `[MUA HỘ QUÁN NGOÀI] ${ghiChuMon}`
     };
-
-    const existingCart = JSON.parse(localStorage.getItem("giao_nong_cart") || "[]");
-    localStorage.setItem("giao_nong_cart", JSON.stringify([...existingCart, newItem]));
-
-    router.push('/thanh-toan');
+    const updatedCart = [...cart, newItem];
+    setCart(updatedCart);
+    localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart));
+    
+    setShowCustom(false);
+    setMonDangChon(null);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#fcfaf1] flex flex-col items-center justify-center max-w-md mx-auto">
-        <Loader2 className="animate-spin text-orange-500 mb-4" size={40} />
-      </div>
-    );
-  }
+  const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
 
-  // TRANG DANH SÁCH QUÁN
+  if (isLoading) return <div className="min-h-screen bg-[#fcfaf1] flex flex-col items-center justify-center max-w-md mx-auto"><Loader2 className="animate-spin text-orange-500 mb-4" size={40} /></div>;
+
   if (monDangChon) {
     const danhSachQuan = getDanhSachQuan(monDangChon.name);
     return (
-      <div className="min-h-screen bg-[#fcfaf1] pb-10 font-sans max-w-md mx-auto shadow-2xl relative animate-in slide-in-from-right-8 duration-300">
+      <div className="min-h-screen bg-[#fcfaf1] pb-24 font-sans max-w-md mx-auto shadow-2xl relative animate-in slide-in-from-right-8 duration-300">
         <header className="bg-white p-4 flex items-center gap-3 shadow-sm sticky top-0 z-10 rounded-b-2xl">
           <button onClick={() => { setMonDangChon(null); setQuanDangChon(null); setShowCustom(false); }} className="text-gray-600 active:bg-gray-200 p-2 rounded-full bg-gray-50"><ArrowLeft size={20}/></button>
           <div><h1 className="text-xl font-black text-gray-800 leading-tight">{monDangChon.name}</h1><p className="text-[10px] text-gray-500 font-bold">Chọn quán để đặt món</p></div>
@@ -129,71 +125,47 @@ export default function DoAnMenu() {
                 <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-white text-xs font-bold flex items-center gap-1"><Clock size={12}/> {quan.thoiGian}</div>
               </div>
               <div className="p-5 flex justify-between items-center">
-                <div><h3 className="text-xl font-black text-gray-800 mb-1">{quan.ten}</h3><p className="text-sm text-gray-500 font-medium flex items-center gap-1"><MapPin size={14} className="text-orange-500"/> {quan.diaChi} ({quan.khoangCach})</p></div>
+                <div><h3 className="text-xl font-black text-gray-800 mb-1">{quan.ten}</h3><p className="text-sm text-gray-500 font-medium flex items-center gap-1"><MapPin size={14} className="text-orange-500"/> {quan.diaChi}</p></div>
                 <div className="text-right flex-shrink-0 ml-2"><p className="text-[10px] text-gray-400 font-bold uppercase">Giá từ</p><p className="text-xl font-black text-orange-600">{quan.gia.toLocaleString('vi-VN')}đ</p></div>
               </div>
             </div>
           ))}
 
-          {/* KHU VỰC: KHÔNG TÌM THẤY QUÁN ƯNG Ý -> MUA HỘ */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-[2rem] p-5 text-white shadow-lg relative overflow-hidden mt-6">
              <div className="absolute -right-2 -bottom-2 opacity-20"><Store size={100} /></div>
              <div className="relative z-10">
                 <h2 className="text-lg font-black uppercase mb-1">Không thấy quán bạn thích?</h2>
-                <p className="text-xs font-medium text-blue-100 mb-4">Nhập tên quán bạn muốn mua món {monDangChon.name}, Shipper sẽ chạy đi mua hộ ngay!</p>
-                <button 
-                  onClick={() => { setShowCustom(!showCustom); setSoLuong(1); setGhiChuMon(""); }} 
-                  className="bg-white text-blue-600 font-black text-sm px-4 py-3 rounded-xl flex items-center gap-2 active:scale-95 transition-all shadow-sm w-full justify-center"
-                >
-                  {showCustom ? "ĐÓNG FORM MUA HỘ" : <><Plus size={18}/> NHẬP TÊN QUÁN BẠN MUỐN</>}
+                <p className="text-xs font-medium text-blue-100 mb-4">Nhập tên quán bạn muốn mua, Shipper sẽ chạy đi mua hộ ngay!</p>
+                <button onClick={() => { setShowCustom(!showCustom); setSoLuong(1); setGhiChuMon(""); }} className="bg-white text-blue-600 font-black text-sm px-4 py-3 rounded-xl flex items-center gap-2 active:scale-95 transition-all w-full justify-center">
+                  {showCustom ? "ĐÓNG FORM" : <><Plus size={18}/> NHẬP TÊN QUÁN MUA HỘ</>}
                 </button>
              </div>
           </div>
 
-          {/* FORM NHẬP QUÁN TÙY CHỌN */}
           {showCustom && (
             <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-lg space-y-4 animate-in fade-in slide-in-from-top-4">
-               <div className="flex items-center gap-2 text-blue-600 mb-2 border-b border-gray-100 pb-3">
-                  <Info size={18}/> <p className="font-black text-sm uppercase">Thông tin quán cần mua</p>
-               </div>
-               
-               <input type="text" value={customQuan} onChange={(e) => setCustomQuan(e.target.value)} placeholder="Tên quán (VD: Cơm tấm bãi rác)..." className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-blue-500 text-sm font-medium" />
-               <input type="text" value={customAddress} onChange={(e) => setCustomAddress(e.target.value)} placeholder="Địa chỉ quán (Nếu biết)..." className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-blue-500 text-sm font-medium" />
-               
-               <div>
-                  <label className="flex items-center gap-2 text-gray-800 font-bold text-sm mb-2 mt-2">
-                    <MessageSquare size={16} className="text-gray-500"/> Ghi chú cho Shipper
-                  </label>
-                  <textarea
-                    value={ghiChuMon}
-                    onChange={(e) => setGhiChuMon(e.target.value)}
-                    placeholder="Ví dụ: Mua hộp nhiều cơm, xin thêm mắm chua ngọt..."
-                    className="w-full bg-gray-50 p-3 rounded-xl border border-gray-200 outline-blue-500 text-sm h-20 resize-none font-medium"
-                  ></textarea>
-               </div>
-
+               <div className="flex items-center gap-2 text-blue-600 mb-2 border-b border-gray-100 pb-3"><Info size={18}/> <p className="font-black text-sm uppercase">Thông tin quán cần mua</p></div>
+               <input type="text" value={customQuan} onChange={(e) => setCustomQuan(e.target.value)} placeholder="Tên quán..." className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-blue-500 text-sm font-medium" />
+               <input type="text" value={customAddress} onChange={(e) => setCustomAddress(e.target.value)} placeholder="Địa chỉ quán..." className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-blue-500 text-sm font-medium" />
+               <textarea value={ghiChuMon} onChange={(e) => setGhiChuMon(e.target.value)} placeholder="Ghi chú cho Shipper..." className="w-full bg-gray-50 p-3 rounded-xl border border-gray-200 outline-blue-500 text-sm h-20 resize-none font-medium"></textarea>
                <div className="flex justify-between items-center py-2 border-t border-gray-100 pt-4">
-                  <span className="text-gray-800 font-bold text-sm">Số lượng phần</span>
+                  <span className="text-gray-800 font-bold text-sm">Số lượng</span>
                   <div className="flex items-center gap-3 bg-gray-50 p-1 rounded-xl border border-gray-200">
-                    <button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="p-2 bg-white rounded-lg shadow-sm text-gray-600" disabled={soLuong <= 1}><Minus size={16} /></button>
+                    <button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="p-2 bg-white rounded-lg shadow-sm text-gray-600"><Minus size={16} /></button>
                     <span className="font-black text-lg w-6 text-center text-gray-800">{soLuong}</span>
                     <button onClick={() => setSoLuong(soLuong + 1)} className="p-2 bg-white rounded-lg shadow-sm text-blue-600"><Plus size={16} /></button>
                   </div>
                </div>
-
-               <button onClick={handleCheckoutCustom} className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 shadow-md">
+               <button onClick={handleAddCustomToCart} className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 shadow-md">
                   <ShoppingCart size={18} /> THÊM VÀO GIỎ HÀNG
                </button>
             </div>
           )}
-
         </div>
 
-        {/* POPUP CHỌN SỐ LƯỢNG & GHI CHÚ CHO QUÁN CÓ SẴN (Giữ nguyên của mày) */}
         {quanDangChon && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center animate-in fade-in max-w-md mx-auto">
             <div className="bg-white w-full rounded-t-[2.5rem] p-6 slide-in-from-bottom-full duration-300">
-              
               <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-4">
                 <div>
                   <p className="text-xs text-orange-600 font-bold flex items-center gap-1 mb-1"><Store size={14}/> {quanDangChon.ten}</p>
@@ -203,44 +175,43 @@ export default function DoAnMenu() {
               </div>
 
               <div className="mb-6">
-                <label className="flex items-center gap-2 text-gray-800 font-bold text-sm mb-2">
-                  <MessageSquare size={16} className="text-gray-500"/> Ghi chú cho quán (Tùy chọn)
-                </label>
-                <textarea
-                  value={ghiChuMon}
-                  onChange={(e) => setGhiChuMon(e.target.value)}
-                  placeholder="Ví dụ: Không hành, nước lèo để riêng, ít cay..."
-                  className="w-full bg-gray-50 p-4 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none text-sm h-24 resize-none font-medium placeholder:text-gray-400 placeholder:font-normal"
-                ></textarea>
+                <textarea value={ghiChuMon} onChange={(e) => setGhiChuMon(e.target.value)} placeholder="Ghi chú (Vd: Không hành, ít cay)..." className="w-full bg-gray-50 p-4 rounded-2xl border border-gray-200 outline-orange-500 text-sm h-24 resize-none font-medium"></textarea>
               </div>
 
               <div className="flex justify-between items-center mb-8">
                 <span className="text-gray-800 font-bold text-lg">Số lượng</span>
                 <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-2xl border border-gray-200">
-                  <button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="p-3 bg-white rounded-xl shadow-sm text-gray-600 active:bg-gray-100 disabled:opacity-50" disabled={soLuong <= 1}><Minus size={20} /></button>
+                  <button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="p-3 bg-white rounded-xl shadow-sm text-gray-600 active:bg-gray-100"><Minus size={20} /></button>
                   <span className="font-black text-2xl w-8 text-center text-gray-800">{soLuong}</span>
                   <button onClick={() => setSoLuong(soLuong + 1)} className="p-3 bg-white rounded-xl shadow-sm text-orange-600 active:bg-gray-100"><Plus size={20} /></button>
                 </div>
               </div>
 
-              <button onClick={handleCheckout} className="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white p-4 rounded-2xl shadow-[0_8px_30px_rgba(234,88,12,0.3)] flex justify-between items-center active:scale-[0.98] transition-transform">
-                <div className="text-left"><p className="text-[10px] font-bold uppercase opacity-80 mb-0.5">Thêm vào giỏ hàng</p><p className="text-2xl font-black">{(quanDangChon.gia * soLuong).toLocaleString('vi-VN')}đ</p></div>
-                <div className="flex items-center gap-1 font-black text-sm bg-white/20 px-4 py-2 rounded-xl backdrop-blur-sm">CHỐT ĐƠN <ChevronRight size={18} /></div>
+              <button onClick={handleAddToCart} className="w-full bg-orange-600 text-white p-4 rounded-2xl shadow-lg flex justify-between items-center active:scale-[0.98] transition-transform">
+                <div className="text-left"><p className="text-[10px] font-bold uppercase opacity-80 mb-0.5">Tổng cộng</p><p className="text-2xl font-black">{(quanDangChon.gia * soLuong).toLocaleString('vi-VN')}đ</p></div>
+                <div className="flex items-center gap-1 font-black text-sm bg-black/20 px-4 py-2 rounded-xl backdrop-blur-sm"><ShoppingCart size={18}/> THÊM VÀO GIỎ</div>
               </button>
-
             </div>
+          </div>
+        )}
+
+        {totalQty > 0 && !quanDangChon && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 max-w-md mx-auto rounded-t-3xl z-40 animate-in slide-in-from-bottom-4">
+            <button onClick={() => router.push('/thanh-toan')} className="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-black text-lg py-4 rounded-2xl active:scale-95 transition-all shadow-lg flex justify-between px-6 items-center">
+              <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">{totalQty} món</span>
+              <span>ĐẾN THANH TOÁN <ChevronRight size={18} className="inline"/></span>
+            </button>
           </div>
         )}
       </div>
     );
   }
 
-  // TRANG MENU MẶC ĐỊNH (Giữ nguyên của mày)
   const dsMonTheoDanhMuc = menuItems.filter(item => item.category === activeCategory);
   const categoryImage = activeCategory ? getCategoryImage(activeCategory) : "";
 
   return (
-    <div className="min-h-screen bg-[#fcfaf1] pb-10 font-sans max-w-md mx-auto shadow-2xl relative">
+    <div className="min-h-screen bg-[#fcfaf1] pb-24 font-sans max-w-md mx-auto shadow-2xl relative">
       <header className="bg-white p-4 flex items-center gap-3 shadow-sm sticky top-0 z-10 rounded-b-2xl">
         {activeCategory ? (<button onClick={() => setActiveCategory(null)} className="text-gray-600 active:bg-gray-200 p-2 rounded-full bg-gray-50"><ArrowLeft size={20}/></button>) : (<Link href="/"><button className="text-gray-600 active:bg-gray-200 p-2 rounded-full bg-gray-50"><ArrowLeft size={20}/></button></Link>)}
         <div><h1 className="text-xl font-black text-gray-800">{activeCategory || "Khám Phá Menu"}</h1>{activeCategory && <p className="text-[10px] text-gray-500 font-bold">{dsMonTheoDanhMuc.length} món ngon cho bạn</p>}</div>
@@ -273,6 +244,15 @@ export default function DoAnMenu() {
           </div>
         )}
       </div>
+
+      {totalQty > 0 && !activeCategory && !monDangChon && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 max-w-md mx-auto rounded-t-3xl z-40 animate-in slide-in-from-bottom-4">
+          <button onClick={() => router.push('/thanh-toan')} className="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-black text-lg py-4 rounded-2xl active:scale-95 transition-all shadow-lg flex justify-between px-6 items-center">
+            <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">{totalQty} món</span>
+            <span>ĐẾN THANH TOÁN <ChevronRight size={18} className="inline"/></span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
