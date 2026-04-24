@@ -70,7 +70,7 @@ export default function HomePage() {
   if (!isMounted) return <div className="min-h-screen bg-[#fcfaf1]"></div>;
 
   return (
-    <div className="min-h-screen bg-[#fcfaf1] font-sans pb-24 max-w-md mx-auto shadow-2xl relative">
+    <div className="min-h-screen bg-[#fcfaf1] pb-24 max-w-md mx-auto shadow-2xl relative" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       
       <header className="bg-white p-4 sticky top-0 z-30 shadow-sm rounded-b-2xl flex justify-between items-center">
         <div>
@@ -140,26 +140,38 @@ export default function HomePage() {
            <button className="text-xs font-semibold text-orange-600 bg-orange-50 px-4 py-2.5 rounded-lg border border-orange-100 transition-all hover:bg-orange-100 active:scale-95">Nhập mã</button>
         </div>
 
-        {/* MENU DỊCH VỤ - ĐÃ SỬA LẠI ĐƯỜNG LINK /do-an */}
-        <div className="grid grid-cols-2 gap-3">
-           <button onClick={() => alert("Chức năng Giao Hàng sắp ra mắt!")} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-60">
-              <div className="bg-blue-50 p-4 rounded-full text-blue-500"><Box size={26}/></div>
-              <span className="font-bold text-gray-700 text-sm">Giao Hàng</span>
-           </button>
-           <button onClick={() => alert("Chức năng Đặt Xe sắp ra mắt!")} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-60">
-              <div className="bg-blue-50 p-4 rounded-full text-blue-500"><Car size={26}/></div>
-              <span className="font-bold text-gray-700 text-sm">Đặt Xe</span>
-           </button>
-           
-           {/* NÚT ĐỒ ĂN TRỔ VỀ ĐÚNG /do-an */}
-           <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-orange-200 active:scale-95 transition-all mt-2">
-              <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Utensils size={26}/></div>
-              <span className="font-bold text-orange-600 text-sm">Đồ Ăn</span>
+        {/* THỨ TỰ MODULE ĐÃ SẮP XẾP LẠI CHUẨN CHỈNH */}
+        <div className="grid grid-cols-2 gap-4">
+           {/* 1. Đồ Ăn (Nổi bật nhất) */}
+           <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-[1.5rem] flex flex-col items-center gap-3 shadow-md border-2 border-orange-100 active:scale-95 transition-all hover:border-orange-300">
+              <div className="bg-orange-50 p-4 rounded-full text-orange-500">
+                <Utensils size={32} strokeWidth={2}/>
+              </div>
+              <span className="font-bold text-orange-600 text-sm uppercase tracking-wide">Đồ Ăn</span>
            </button>
            
-           <button onClick={() => alert("Chức năng Thức Uống sắp ra mắt!")} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-60 mt-2">
-              <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Coffee size={26}/></div>
-              <span className="font-bold text-gray-700 text-sm">Thức Uống</span>
+           {/* 2. Thức Uống */}
+           <button onClick={() => alert("Chức năng Thức Uống sắp ra mắt!")} className="bg-white p-5 rounded-[1.5rem] flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-70">
+              <div className="bg-amber-50 p-4 rounded-full text-amber-500">
+                <Coffee size={32} strokeWidth={2}/>
+              </div>
+              <span className="font-bold text-gray-700 text-sm uppercase tracking-wide">Thức Uống</span>
+           </button>
+
+           {/* 3. Giao Hàng */}
+           <button onClick={() => alert("Chức năng Giao Hàng sắp ra mắt!")} className="bg-white p-5 rounded-[1.5rem] flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-70">
+              <div className="bg-blue-50 p-4 rounded-full text-blue-500">
+                <Box size={32} strokeWidth={2}/>
+              </div>
+              <span className="font-bold text-gray-700 text-sm uppercase tracking-wide">Giao Hàng</span>
+           </button>
+
+           {/* 4. Đặt Xe */}
+           <button onClick={() => alert("Chức năng Đặt Xe sắp ra mắt!")} className="bg-white p-5 rounded-[1.5rem] flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-70">
+              <div className="bg-green-50 p-4 rounded-full text-green-500">
+                <Car size={32} strokeWidth={2}/>
+              </div>
+              <span className="font-bold text-gray-700 text-sm uppercase tracking-wide">Đặt Xe</span>
            </button>
         </div>
 
