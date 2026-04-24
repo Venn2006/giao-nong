@@ -1,227 +1,199 @@
 "use client";
 import { useState, useEffect } from "react";
-import { 
-  MapPin, Phone, Receipt, RefreshCw, AlertCircle, 
-  Motorbike, Headset, Banknote, TrendingUp, 
-  Store, PiggyBank, Target, BarChart3, Layers, 
-  ShieldCheck, User, Navigation, ArrowRightLeft, Flag, Info 
-} from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { Clock, MapPin, Coffee, Utensils, Box, Car, ChevronRight, Zap, Calendar, Star, Gift } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-export default function BossDashboard() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+// 1. DỮ LIỆU CA GIAO HÀNG (Đã sửa Ca Chiều chuẩn 14:30 - 16:00)
+const schedules = [
+  { id: 'sang', name: 'CA SÁNG', cutoff: '06:30', delivery: '07:00 - 08:00', cutoffHour: 6, cutoffMin: 30 },
+  { id: 'trua', name: 'CA TRƯA', cutoff: '10:00', delivery: '10:30 - 12:00', cutoffHour: 10, cutoffMin: 0 },
+  { id: 'chieu', name: 'CA CHIỀU', cutoff: '14:00', delivery: '14:30 - 16:00', cutoffHour: 14, cutoffMin: 0 },
+  { id: 'toi', name: 'CA TỐI', cutoff: '17:30', delivery: '18:00 - 19:30', cutoffHour: 17, cutoffMin: 30 },
+];
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
-    const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    if (data) setOrders(data);
-    setIsLoading(false);
-  };
+export default function HomePage() {
+  const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userPhone, setUserPhone] = useState("");
+
+  // State đếm ngược
+  const [timeLeft, setTimeLeft] = useState<{ active: typeof schedules[0], totalMinutes: number, seconds: number } | null>(null);
 
   useEffect(() => {
-    fetchOrders();
-    const sub = supabase.channel('boss_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
-      .subscribe();
-    return () => { supabase.removeChannel(sub); };
+    // 2. CHỐNG HYDRATION MISMATCH
+    setIsMounted(true);
+
+    const savedUser = localStorage.getItem("giao_nong_user");
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      if (parsed.name) setUserName(parsed.name);
+      if (parsed.phone) setUserPhone(parsed.phone);
+    }
+
+    // 3. LOGIC ĐẾM NGƯỢC CHUẨN GIỜ VIỆT NAM (Tính TỔNG số phút)
+    const timer = setInterval(() => {
+      const now = new Date();
+      let target = new Date(now);
+      let activeSchedule = schedules[0];
+      let found = false;
+
+      // Quét tìm ca chốt đơn tiếp theo trong ngày
+      for (let i = 0; i < schedules.length; i++) {
+        const cutoffDate = new Date(now);
+        cutoffDate.setHours(schedules[i].cutoffHour, schedules[i].cutoffMin, 0, 0);
+        
+        if (now.getTime() < cutoffDate.getTime()) {
+          activeSchedule = schedules[i];
+          target = cutoffDate;
+          found = true;
+          break;
+        }
+      }
+
+      // Nếu đã qua 17:30, tự động nhảy sang Ca Sáng ngày mai
+      if (!found) {
+        activeSchedule = schedules[0];
+        target.setDate(target.getDate() + 1);
+        target.setHours(schedules[0].cutoffHour, schedules[0].cutoffMin, 0, 0);
+      }
+
+      const diffMs = target.getTime() - now.getTime();
+      
+      if (diffMs > 0) {
+        setTimeLeft({
+          active: activeSchedule,
+          // TUYỆT ĐỐI KHÔNG DÙNG % 60 Ở ĐÂY. Lấy nguyên tổng số phút.
+          totalMinutes: Math.floor(diffMs / (1000 * 60)), 
+          seconds: Math.floor((diffMs / 1000) % 60)
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    await supabase.from('orders').update({ status: newStatus }).eq('id', id);
-  };
-
-  const today = new Date().toISOString().split('T')[0];
-  const completedToday = orders.filter(o => o.status === 'completed' && o.created_at.startsWith(today));
-  
-  let totalShippingRevenue = 0;
-  let totalFoodCost = 0;
-
-  completedToday.forEach(o => {
-    const fee = o.shipping_fee || 10000;
-    totalShippingRevenue += fee;
-    totalFoodCost += (o.total_amount - fee);
-  });
-
-  const kpiTarget = 100;
-  const currentProgress = completedToday.length;
-  const isKpiMet = currentProgress >= kpiTarget;
-  const kpiBonus = isKpiMet ? 100000 : 0;
-  const codCash = completedToday.filter(o => o.payment_method === 'cash').reduce((sum, o) => sum + o.total_amount, 0);
+  // Tránh render HTML lúc Server chưa đồng bộ với Client
+  if (!isMounted) return <div className="min-h-screen bg-[#fcfaf1]"></div>;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans pb-20 max-w-4xl mx-auto shadow-2xl border-x border-gray-200">
+    <div className="min-h-screen bg-[#fcfaf1] font-sans pb-24 max-w-md mx-auto shadow-2xl relative" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       
-      <header className="bg-white border-b border-gray-200 p-6 sticky top-0 z-30 flex justify-between items-center backdrop-blur-md bg-white/90">
-        <div className="flex items-center gap-3">
-          <div className="bg-orange-600 p-2.5 rounded-2xl shadow-lg shadow-orange-200">
-            <Headset size={24} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">GIAO NÓNG <span className="text-orange-600">HUB</span></h1>
-            <div className="flex items-center gap-2">
-               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Hệ thống liên tuyến: Cà Mau - Bờ Đập - Huyện</p>
-            </div>
-          </div>
+      {/* HEADER */}
+      <header className="bg-white p-4 sticky top-0 z-30 shadow-sm rounded-b-2xl flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-black text-orange-600 tracking-tight">GIAO NÓNG</h1>
+          <p className="text-[10px] font-bold text-gray-500 flex items-center gap-1 mt-0.5">
+            Cà Mau <ChevronRight size={10}/> Đầm Dơi, Chà Là
+          </p>
         </div>
-        <button onClick={fetchOrders} className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-2xl transition-all active:scale-95 border border-gray-200">
-          <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
-        </button>
+        <div className="bg-green-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-green-100 shadow-sm">
+           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+           <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">Đang nhận đơn</span>
+        </div>
       </header>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-5">
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-sm">
-             <p className="text-xs font-bold text-gray-400 uppercase mb-1">Lợi nhuận Ship (Quỹ lương)</p>
-             <h3 className="text-2xl font-black text-gray-900">{totalShippingRevenue.toLocaleString('vi-VN')}đ</h3>
-             <div className="mt-2 flex items-center gap-1 text-[10px] text-green-600 font-bold">
-                <TrendingUp size={12}/> Thu 100% phí ship
+        {/* THẺ THÀNH VIÊN HOẶC ĐĂNG KÝ */}
+        {!userName ? (
+          <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-orange-100 text-center space-y-3">
+             <Gift className="text-orange-500 mx-auto" size={32} />
+             <div>
+                <h2 className="font-black text-gray-900 text-lg uppercase tracking-tight">Chưa có thẻ thành viên?</h2>
+                <p className="text-xs text-gray-500 font-medium mt-1">Đăng ký 1 lần duy nhất để không phải nhập lại địa chỉ & tích điểm giảm tới 15%</p>
+             </div>
+             <button className="w-full bg-orange-600 text-white font-semibold py-3 rounded-xl hover:bg-orange-700 transition-all shadow-md active:scale-95">ĐĂNG KÝ NGAY</button>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+             <div className="absolute -right-4 -bottom-4 opacity-10"><Zap size={120} /></div>
+             <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-2"><div className="bg-white/20 p-2 rounded-xl"><Zap size={20}/></div><span className="font-black text-lg">Đồng</span></div>
+                <span className="bg-white/20 px-2 py-1 rounded text-[10px] font-black">Giảm 0%</span>
+             </div>
+             <div className="flex justify-between items-end">
+                <div><h2 className="text-xl font-black uppercase">{userName}</h2><p className="text-xs font-medium opacity-90">{userPhone}</p></div>
+                <div className="text-right"><p className="text-[9px] font-black opacity-80 uppercase">ĐIỂM TÍCH LŨY</p><p className="text-3xl font-black leading-none">0</p></div>
              </div>
           </div>
+        )}
 
-          <div className="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-sm">
-             <p className="text-xs font-bold text-gray-400 uppercase mb-1">Tiền vốn trả Quán</p>
-             <h3 className="text-2xl font-black text-gray-900">{totalFoodCost.toLocaleString('vi-VN')}đ</h3>
-             <p className="mt-2 text-[10px] text-gray-400 font-medium">Bàn giao 100% giá món</p>
+        {/* ĐỒNG HỒ ĐẾM NGƯỢC (HIỂN THỊ TỔNG PHÚT) */}
+        {timeLeft && (
+          <div className="bg-[#bd4a1c] rounded-[2rem] p-6 text-white text-center shadow-md relative border border-[#a44216]">
+            <p className="text-xs font-black mb-4 uppercase tracking-wider text-orange-100">
+              Hôm nay, ĐANG CHỐT ĐƠN {timeLeft.active.name}
+            </p>
+            <div className="flex justify-center items-center gap-3">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl w-20 h-20 flex items-center justify-center shadow-inner">
+                {/* HIỂN THỊ TỔNG SỐ PHÚT (VD: 85 phút) */}
+                <span className="text-4xl font-black">{String(timeLeft.totalMinutes).padStart(2, '0')}</span>
+              </div>
+              <span className="text-4xl font-black pb-2 opacity-80 animate-pulse">:</span>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl w-20 h-20 flex items-center justify-center shadow-inner">
+                {/* HIỂN THỊ GIÂY */}
+                <span className="text-4xl font-black">{String(timeLeft.seconds).padStart(2, '0')}</span>
+              </div>
+            </div>
+            <div className="bg-black/20 inline-block px-4 py-2 rounded-full mt-5 shadow-sm">
+              <p className="text-[10px] font-bold text-orange-100 uppercase">
+                Giao: {timeLeft.active.delivery} • Chốt: {timeLeft.active.cutoff}
+              </p>
+            </div>
           </div>
+        )}
 
-          <div className="bg-slate-900 p-5 rounded-[2rem] shadow-xl text-white">
-             <p className="text-xs font-bold text-slate-400 uppercase mb-1">Tiền mặt Shipper nộp</p>
-             <h3 className="text-2xl font-black text-orange-400">{codCash.toLocaleString('vi-VN')}đ</h3>
-             <p className="mt-2 text-[10px] text-slate-500 italic">Đối soát chốt ca</p>
-          </div>
+        {/* MÃ NGƯỜI QUEN */}
+        <div className="bg-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-gray-100">
+           <div>
+              <p className="font-bold text-gray-800 text-sm">Nhập mã người quen</p>
+              <p className="text-[10px] text-gray-500 font-medium">Nhận ưu đãi 20K phí ship!</p>
+           </div>
+           <button className="text-xs font-semibold text-orange-600 bg-orange-50 px-4 py-2 rounded-lg border border-orange-100 transition-all hover:bg-orange-100 active:scale-95">Nhập mã</button>
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
-           <div className="flex justify-between items-center mb-4">
-              <h2 className="font-black text-gray-800 flex items-center gap-2"><Target className="text-red-500"/> KPI THƯỞNG NGÀY</h2>
-              <span className="text-orange-600 font-black">{currentProgress}/{kpiTarget} đơn</span>
-           </div>
-           <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500 transition-all duration-1000" style={{ width: `${(currentProgress/kpiTarget)*100}%` }}></div>
-           </div>
-           {isKpiMet && <p className="text-[10px] text-green-600 font-bold mt-2 uppercase">🎉 Đã đạt mốc thưởng 100.000đ</p>}
+        {/* MENU DỊCH VỤ */}
+        <div className="grid grid-cols-2 gap-3">
+           <button onClick={() => router.push('/quan')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
+              <div className="bg-blue-50 p-4 rounded-full text-blue-500"><Box size={28}/></div>
+              <span className="font-bold text-gray-800 text-sm uppercase">GIAO HÀNG</span>
+           </button>
+           <button className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-60">
+              <div className="bg-blue-50 p-4 rounded-full text-blue-500"><Car size={28}/></div>
+              <span className="font-bold text-gray-800 text-sm uppercase">ĐẶT XE</span>
+           </button>
+           <button onClick={() => router.push('/quan')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all mt-2">
+              <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Utensils size={28}/></div>
+              <span className="font-bold text-gray-800 text-sm uppercase">ĐỒ ĂN</span>
+           </button>
+           <button className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all opacity-60 mt-2">
+              <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Coffee size={28}/></div>
+              <span className="font-bold text-gray-800 text-sm uppercase">THỨC UỐNG</span>
+           </button>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden">
-           <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-              <h2 className="font-black text-gray-800 text-lg flex items-center gap-2">
-                <Layers className="text-gray-400" /> GIÁM SÁT VẬN HÀNH
-              </h2>
-           </div>
-           
-           <div className="divide-y divide-gray-100">
-              {orders.map((order) => (
-                <div key={order.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex flex-col md:flex-row justify-between gap-6">
-                    
-                    <div className="flex-grow space-y-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-black text-gray-900">{order.order_code}</span>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black ${
-                          order.status === 'pending' ? 'bg-red-100 text-red-600 animate-pulse' :
-                          order.status === 'tx1_picking' ? 'bg-blue-100 text-blue-700' :
-                          order.status === 'at_midpoint' ? 'bg-purple-100 text-purple-700' :
-                          order.status === 'tx2_delivering' ? 'bg-orange-100 text-orange-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {order.status === 'pending' ? '🔴 MỚI' : 
-                           order.status === 'tx1_picking' ? '🛵 TX1: GOM HÀNG' :
-                           order.status === 'at_midpoint' ? '📍 TẠI BỜ ĐẬP' :
-                           order.status === 'tx2_delivering' ? '🛵 TX2: GIAO HUYỆN' : '✅ XONG'}
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
-                           <User size={14} className="text-gray-400" /> {order.customer_name}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-bold text-orange-600">
-                           <Phone size={14} /> {order.customer_phone}
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs text-gray-700 font-medium">
-                        <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Sản phẩm:</span>
-                        {order.items_summary}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2 text-xs font-bold text-gray-700 bg-gray-100 p-3 rounded-xl">
-                           <MapPin size={16} className="text-gray-400 flex-shrink-0" /> 
-                           <span>Địa chỉ: {order.delivery_address}</span>
-                        </div>
-                        
-                        {order.shipping_note && (
-                          <div className="bg-orange-50 border border-orange-200 p-3 rounded-xl flex items-start gap-2 shadow-sm">
-                             <Info size={16} className="text-orange-500 flex-shrink-0" />
-                             <p className="text-[11px] font-black text-orange-800 uppercase leading-relaxed">
-                               CHỈ ĐƯỜNG: {order.shipping_note}
-                             </p>
-                          </div>
-                        )}
-
-                        {/* LINK GOOGLE MAPS ĐÃ FIX CHUẨN */}
-                        {order.gps_location && (
-                          <a 
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${order.gps_location}&travelmode=motorcycle`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 bg-blue-600 text-white w-full py-4 rounded-2xl shadow-lg transition-all active:scale-95 mt-2"
-                          >
-                            <Navigation size={20} className="fill-white" />
-                            <span className="font-black text-sm uppercase">Mở Google Maps dẫn đường</span>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="md:w-56 flex flex-col justify-between items-end border-l border-gray-100 pl-4">
-                      <div className="text-right w-full">
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tổng thu khách</p>
-                        <p className="text-3xl font-black text-gray-900">{order.total_amount?.toLocaleString('vi-VN')}đ</p>
-                        <p className="text-[10px] font-black mt-2 px-3 py-1 rounded bg-gray-100 inline-block text-gray-500 italic">
-                          {order.payment_method === 'bank' ? '🏦 BANK / QR' : '💵 TIỀN MẶT'}
-                        </p>
-                      </div>
-
-                      <div className="w-full mt-8 space-y-2">
-                        {order.status === 'pending' && (
-                          <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl text-xs active:scale-95 flex items-center justify-center gap-2">
-                            <Motorbike size={16}/> TX1 GOM CÀ MAU
-                          </button>
-                        )}
-
-                        {order.status === 'tx1_picking' && (
-                          <button onClick={() => updateStatus(order.id, 'at_midpoint')} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-xs active:scale-95 flex items-center justify-center gap-2">
-                            <MapPin size={16}/> ĐÃ TỚI BỜ ĐẬP
-                          </button>
-                        )}
-
-                        {order.status === 'at_midpoint' && (
-                          <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-500 text-white font-black py-4 rounded-xl text-xs active:scale-95 flex items-center justify-center gap-2">
-                            <ArrowRightLeft size={16}/> GIAO TX2 (HUYỆN)
-                          </button>
-                        )}
-
-                        {order.status === 'tx2_delivering' && (
-                          <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-500 text-white font-black py-4 rounded-xl text-xs active:scale-95 flex items-center justify-center gap-2">
-                            <Flag size={16}/> HOÀN THÀNH ĐƠN
-                          </button>
-                        )}
-
-                        {['pending', 'tx1_picking'].includes(order.status) && (
-                          <button onClick={() => { if(window.confirm('Hủy đơn?')) updateStatus(order.id, 'cancelled') }} className="w-full mt-2 text-[10px] text-gray-400 font-bold underline hover:text-red-500 text-center block">Hủy đơn hàng</button>
-                        )}
-                      </div>
-                    </div>
+        {/* LỊCH GIAO CẢ NGÀY */}
+        <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 mt-6">
+           <h2 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
+             <Calendar className="text-gray-800" size={20}/> Lịch Giao Cả Ngày
+           </h2>
+           <div className="space-y-3">
+              {schedules.map((s) => (
+                <div key={s.id} className={`flex justify-between items-center p-4 rounded-xl border ${timeLeft?.active.id === s.id ? 'border-orange-200 bg-orange-50' : 'border-gray-50 bg-white'}`}>
+                  <div>
+                     <p className={`font-bold text-sm ${timeLeft?.active.id === s.id ? 'text-orange-600' : 'text-gray-800'}`}>{s.name}</p>
+                     <p className="text-[10px] text-gray-500 font-medium mt-1">Chốt đơn trước: <span className="font-bold text-gray-800">{s.cutoff}</span></p>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Giao Hàng</p>
+                     <p className="font-bold text-gray-900 text-sm">{s.delivery}</p>
                   </div>
                 </div>
               ))}
-            </div>
+           </div>
         </div>
+
       </div>
     </div>
   );
