@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { MapPin, Coffee, Utensils, Box, Car, ChevronRight, User, Phone, Zap, X, Save, Flame, MessageCircle, MessageSquare } from "lucide-react";
+import { MapPin, Coffee, Utensils, Box, Car, ChevronRight, User, Phone, Zap, X, Save, Flame, MessageCircle, MessageSquare, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -81,7 +81,6 @@ export default function HomePage() {
   };
 
   return (
-    // THÊM pb-32 ĐỂ KHÔNG BỊ THANH LIÊN HỆ DƯỚI CÙNG CHE MẤT NỘI DUNG
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-32 max-w-md mx-auto shadow-2xl relative">
       <header className="bg-white p-4 sticky top-0 z-20 shadow-sm rounded-b-2xl flex justify-between items-center">
         <div>
@@ -155,7 +154,7 @@ export default function HomePage() {
            </button>
         </div>
 
-        {/* ĐÃ KHÔI PHỤC: GỢI Ý NÓNG SỐT */}
+        {/* GỢI Ý NÓNG SỐT */}
         <div>
            <h2 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
              Gợi Ý Nóng Sốt <Flame className="text-red-500 fill-red-500" size={20} />
@@ -214,12 +213,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* THANH ĐIỀU HƯỚNG LIÊN HỆ DƯỚI CÙNG (CHỐT ĐƠN TRỰC TIẾP) */}
-      {/* ==================================================== */}
+      {/* THANH ĐIỀU HƯỚNG LIÊN HỆ DƯỚI CÙNG */}
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto z-40 rounded-t-3xl flex justify-around items-center pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         
-        {/* ICON GỌI ĐIỆN */}
         <a href="tel:0911089103" className="flex flex-col items-center gap-1 active:scale-95 transition-transform w-1/3">
            <div className="bg-green-100 p-3 rounded-full border border-green-200 shadow-inner">
              <Phone size={22} className="text-green-600 fill-green-600"/>
@@ -227,7 +223,6 @@ export default function HomePage() {
            <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Gọi Trực Tiếp</span>
         </a>
 
-        {/* ICON ZALO */}
         <a href="https://zalo.me/0911089103" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 active:scale-95 transition-transform w-1/3">
            <div className="bg-blue-100 p-3 rounded-full border border-blue-200 shadow-inner">
              <MessageSquare size={22} className="text-blue-600 fill-blue-600"/>
@@ -235,8 +230,6 @@ export default function HomePage() {
            <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Chat Zalo</span>
         </a>
 
-        {/* ICON FACEBOOK MESSENGER */}
-        {/* Lưu ý: Thay "GiaoNongCaMau" bằng cái ID Fanpage thật của mày nhé */}
         <a href="https://m.me/GiaoNongCaMau" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 active:scale-95 transition-transform w-1/3">
            <div className="bg-blue-50 p-3 rounded-full border border-blue-100 shadow-inner">
              <MessageCircle size={22} className="text-blue-600 fill-blue-600"/>
