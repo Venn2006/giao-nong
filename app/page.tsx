@@ -1,11 +1,31 @@
 "use client";
 import { useState, useEffect } from "react";
-import { MapPin, Coffee, Utensils, Box, Car, ChevronRight, User, Phone, Zap, X, Save, Flame, MessageCircle, MessageSquare, Star, Clock, ShoppingBag } from "lucide-react";
+import { 
+  MapPin, 
+  Coffee, 
+  Utensils, 
+  Box, 
+  Car, 
+  ChevronRight, 
+  User, 
+  Phone, 
+  Zap, 
+  X, 
+  Save, 
+  Flame, 
+  MessageCircle, 
+  MessageSquare, 
+  Star, 
+  Clock, 
+  ShoppingBag, 
+  Bell 
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const router = useRouter();
+  
   const [userName, setUserName] = useState("Khách Mới");
   const [userPhone, setUserPhone] = useState("Chưa cập nhật SĐT");
   
@@ -87,6 +107,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-32 max-w-md mx-auto shadow-2xl relative">
       
+      {/* HEADER CÓ CHUÔNG THÔNG BÁO */}
       <header className="bg-white p-4 sticky top-0 z-20 shadow-sm rounded-b-2xl flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black text-orange-600 tracking-tight">GIAO NÓNG</h1>
@@ -94,9 +115,22 @@ export default function HomePage() {
             Cà Mau <ChevronRight size={10}/> Bờ Đập <ChevronRight size={10}/> Chà Là
           </p>
         </div>
-        <div className="bg-green-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-green-100">
-           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-           <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">Đang nhận đơn</span>
+        
+        <div className="flex items-center gap-3">
+          <div className="bg-green-50 px-2 py-1.5 rounded-xl items-center gap-1.5 border border-green-100 hidden sm:flex">
+             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+             <span className="text-[10px] font-black text-green-700 uppercase">Đang nhận đơn</span>
+          </div>
+          
+          {/* NÚT CHUÔNG LỊCH SỬ ĐƠN HÀNG */}
+          <button 
+            onClick={() => router.push('/don-hang')} 
+            className="relative bg-gray-100 p-2.5 rounded-full active:scale-95 transition-transform border border-gray-200"
+          >
+             <Bell size={20} className="text-gray-700" />
+             {/* Chấm đỏ Noti nhấp nháy */}
+             <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+          </button>
         </div>
       </header>
 
@@ -112,7 +146,9 @@ export default function HomePage() {
                  <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
                    <User size={20} className="text-white"/>
                  </div>
-                 <span className="font-black text-xs uppercase tracking-wider bg-white/20 px-2 py-1 rounded">Bấm cập nhật hồ sơ</span>
+                 <span className="font-black text-xs uppercase tracking-wider bg-white/20 px-2 py-1 rounded">
+                   Bấm cập nhật hồ sơ
+                 </span>
               </div>
               <span className="bg-white/20 px-2 py-1 rounded text-[10px] font-black backdrop-blur-sm">Giảm 0%</span>
            </div>
@@ -130,7 +166,9 @@ export default function HomePage() {
 
         {/* ĐỒNG HỒ ĐẾM NGƯỢC ĐƠN HIỆN TẠI */}
         <div className="bg-[#bd4a1c] rounded-[2rem] p-6 text-white text-center shadow-xl relative border border-[#a44216]">
-          <p className="text-xs font-black mb-4 uppercase tracking-wider text-orange-100">Hôm nay, ĐANG CHỐT ĐƠN {timeLeft.active.name}</p>
+          <p className="text-xs font-black mb-4 uppercase tracking-wider text-orange-100">
+            Hôm nay, ĐANG CHỐT ĐƠN {timeLeft.active.name}
+          </p>
           <div className="flex justify-center items-center gap-3">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl w-24 h-24 flex items-center justify-center shadow-inner">
               <span className="text-5xl font-black">{String(timeLeft.totalMinutes).padStart(2, '0')}</span>
@@ -141,11 +179,13 @@ export default function HomePage() {
             </div>
           </div>
           <div className="bg-black/20 inline-block px-4 py-2 rounded-full mt-5">
-            <p className="text-[10px] font-bold text-orange-100 uppercase">Giao: {timeLeft.active.delivery} • Chốt: {timeLeft.active.cutoff}</p>
+            <p className="text-[10px] font-bold text-orange-100 uppercase">
+              Giao: {timeLeft.active.delivery} • Chốt: {timeLeft.active.cutoff}
+            </p>
           </div>
         </div>
 
-        {/* CỤM 5 NÚT DỊCH VỤ MỚI CHUYÊN NGHIỆP */}
+        {/* CỤM 5 NÚT DỊCH VỤ HIỆN ĐẠI */}
         <div>
           <div className="grid grid-cols-2 gap-3 mb-3">
              <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
@@ -177,8 +217,11 @@ export default function HomePage() {
              </button>
           </div>
 
-          {/* NÚT MUA HỘ ĐA NĂNG NẰM NGANG SIÊU ĐẸP */}
-          <button onClick={() => router.push('/mua-ho')} className="w-full bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-200 active:scale-95 transition-all mb-2">
+          {/* NÚT MUA HỘ ĐA NĂNG */}
+          <button 
+            onClick={() => router.push('/mua-ho')} 
+            className="w-full bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-200 active:scale-95 transition-all mb-2"
+          >
              <div className="flex items-center gap-4">
                 <div className="bg-purple-50 p-3 rounded-full text-purple-600 shadow-inner">
                   <ShoppingBag size={24}/>
@@ -278,15 +321,36 @@ export default function HomePage() {
             <div className="space-y-4 mb-6">
               <div className="relative">
                 <User className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="Tên của bạn..." style={{ color: '#111827', backgroundColor: '#f9fafb' }} className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" />
+                <input 
+                  type="text" 
+                  value={tempName} 
+                  onChange={(e) => setTempName(e.target.value)} 
+                  placeholder="Tên của bạn..." 
+                  style={{ color: '#111827', backgroundColor: '#f9fafb' }} 
+                  className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
+                />
               </div>
               <div className="relative">
                 <Phone className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input type="tel" value={tempPhone} onChange={(e) => setTempPhone(e.target.value)} placeholder="Số điện thoại..." style={{ color: '#111827', backgroundColor: '#f9fafb' }} className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" />
+                <input 
+                  type="tel" 
+                  value={tempPhone} 
+                  onChange={(e) => setTempPhone(e.target.value)} 
+                  placeholder="Số điện thoại..." 
+                  style={{ color: '#111827', backgroundColor: '#f9fafb' }} 
+                  className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
+                />
               </div>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input type="text" value={tempAddress} onChange={(e) => setTempAddress(e.target.value)} placeholder="Địa chỉ mặc định..." style={{ color: '#111827', backgroundColor: '#f9fafb' }} className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" />
+                <input 
+                  type="text" 
+                  value={tempAddress} 
+                  onChange={(e) => setTempAddress(e.target.value)} 
+                  placeholder="Địa chỉ mặc định..." 
+                  style={{ color: '#111827', backgroundColor: '#f9fafb' }} 
+                  className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
+                />
               </div>
             </div>
             
@@ -320,6 +384,7 @@ export default function HomePage() {
           <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Messenger</span>
         </a>
       </div>
+
     </div>
   );
 }
