@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Clock, MapPin, Coffee, Utensils, Box, Car, ChevronRight, User, Phone, ShieldCheck, Ticket, Star, Calendar, Zap, X, Save } from "lucide-react";
+import { MapPin, Coffee, Utensils, Box, Car, ChevronRight, User, Phone, Zap, X, Save, Flame, MessageCircle, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -81,7 +81,8 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans pb-24 max-w-md mx-auto shadow-2xl relative">
+    // THÊM pb-32 ĐỂ KHÔNG BỊ THANH LIÊN HỆ DƯỚI CÙNG CHE MẤT NỘI DUNG
+    <div className="min-h-screen bg-[#f8fafc] font-sans pb-32 max-w-md mx-auto shadow-2xl relative">
       <header className="bg-white p-4 sticky top-0 z-20 shadow-sm rounded-b-2xl flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black text-orange-600 tracking-tight">GIAO NÓNG</h1>
@@ -95,7 +96,9 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="p-4 space-y-5">
+      <div className="p-4 space-y-6">
+        
+        {/* MEMBERSHIP CARD */}
         <div onClick={() => setShowProfile(true)} className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden cursor-pointer active:scale-95 transition-transform">
            <div className="absolute -right-4 -bottom-4 opacity-10"><Zap size={120} /></div>
            <div className="flex justify-between items-start mb-6 relative z-10">
@@ -103,6 +106,7 @@ export default function HomePage() {
                  <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><User size={20} className="text-white"/></div>
                  <span className="font-black text-xs uppercase tracking-wider bg-white/20 px-2 py-1 rounded">Bấm cập nhật hồ sơ</span>
               </div>
+              <span className="bg-white/20 px-2 py-1 rounded text-[10px] font-black backdrop-blur-sm">Giảm 0%</span>
            </div>
            <div className="flex justify-between items-end relative z-10">
               <div>
@@ -116,6 +120,7 @@ export default function HomePage() {
            </div>
         </div>
 
+        {/* ĐỒNG HỒ ĐẾM NGƯỢC */}
         {timeLeft && (
           <div className="bg-[#bd4a1c] rounded-[2rem] p-6 text-white text-center shadow-xl relative border border-[#a44216]">
             <p className="text-xs font-black mb-4 uppercase tracking-wider text-orange-100">Hôm nay, ĐANG CHỐT ĐƠN {timeLeft.active.name}</p>
@@ -130,7 +135,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 4 NÚT DỊCH VỤ ĐÃ KHÔI PHỤC ĐẦY ĐỦ */}
+        {/* 4 NÚT DỊCH VỤ */}
         <div className="grid grid-cols-2 gap-3">
            <button onClick={() => router.push('/quan')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
               <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Utensils size={28}/></div>
@@ -149,8 +154,47 @@ export default function HomePage() {
               <span className="font-black text-gray-800 text-sm">ĐẶT XE</span>
            </button>
         </div>
+
+        {/* ĐÃ KHÔI PHỤC: GỢI Ý NÓNG SỐT */}
+        <div>
+           <h2 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
+             Gợi Ý Nóng Sốt <Flame className="text-red-500 fill-red-500" size={20} />
+           </h2>
+           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              
+              {/* Món 1 */}
+              <div onClick={() => router.push('/quan')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
+                 <img src="https://images.unsplash.com/photo-1596662951482-0c4ba74a6df6?w=500&auto=format&fit=crop&q=60" alt="Bún Riêu" className="w-full h-32 object-cover rounded-xl mb-3"/>
+                 <div className="flex gap-1.5 mb-2">
+                    <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded flex items-center gap-1"><Star size={10} className="fill-orange-600"/> 4.8</span>
+                    <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded">Nổi bật</span>
+                 </div>
+                 <h3 className="font-black text-sm text-gray-800 leading-tight mb-1">Bún Riêu Cua Biển Chà Là</h3>
+                 <div className="flex justify-between items-center mt-3">
+                    <span className="text-orange-600 font-black text-base">45.000đ</span>
+                    <button className="bg-orange-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg">Đặt Ngay</button>
+                 </div>
+              </div>
+
+              {/* Món 2 */}
+              <div onClick={() => router.push('/quan')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
+                 <img src="https://images.unsplash.com/photo-1648421066744-48614cb912d0?w=500&auto=format&fit=crop&q=60" alt="Cơm Tấm" className="w-full h-32 object-cover rounded-xl mb-3"/>
+                 <div className="flex gap-1.5 mb-2">
+                    <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded flex items-center gap-1"><Star size={10} className="fill-orange-600"/> 4.9</span>
+                    <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded">Cơm Đêm</span>
+                 </div>
+                 <h3 className="font-black text-sm text-gray-800 leading-tight mb-1">Cơm Tấm Sườn Bì Ốp La</h3>
+                 <div className="flex justify-between items-center mt-3">
+                    <span className="text-orange-600 font-black text-base">40.000đ</span>
+                    <button className="bg-orange-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg">Đặt Ngay</button>
+                 </div>
+              </div>
+
+           </div>
+        </div>
       </div>
 
+      {/* POPUP CẬP NHẬT TÀI KHOẢN */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md sm:rounded-[2rem] rounded-t-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
@@ -169,6 +213,39 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* ==================================================== */}
+      {/* THANH ĐIỀU HƯỚNG LIÊN HỆ DƯỚI CÙNG (CHỐT ĐƠN TRỰC TIẾP) */}
+      {/* ==================================================== */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto z-40 rounded-t-3xl flex justify-around items-center pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        
+        {/* ICON GỌI ĐIỆN */}
+        <a href="tel:0911089103" className="flex flex-col items-center gap-1 active:scale-95 transition-transform w-1/3">
+           <div className="bg-green-100 p-3 rounded-full border border-green-200 shadow-inner">
+             <Phone size={22} className="text-green-600 fill-green-600"/>
+           </div>
+           <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Gọi Trực Tiếp</span>
+        </a>
+
+        {/* ICON ZALO */}
+        <a href="https://zalo.me/0911089103" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 active:scale-95 transition-transform w-1/3">
+           <div className="bg-blue-100 p-3 rounded-full border border-blue-200 shadow-inner">
+             <MessageSquare size={22} className="text-blue-600 fill-blue-600"/>
+           </div>
+           <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Chat Zalo</span>
+        </a>
+
+        {/* ICON FACEBOOK MESSENGER */}
+        {/* Lưu ý: Thay "GiaoNongCaMau" bằng cái ID Fanpage thật của mày nhé */}
+        <a href="https://m.me/GiaoNongCaMau" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 active:scale-95 transition-transform w-1/3">
+           <div className="bg-blue-50 p-3 rounded-full border border-blue-100 shadow-inner">
+             <MessageCircle size={22} className="text-blue-600 fill-blue-600"/>
+           </div>
+           <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Messenger</span>
+        </a>
+
+      </div>
+
     </div>
   );
 }
