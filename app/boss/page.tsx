@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { 
-  MapPin, Phone, RefreshCw, AlertCircle, Motorbike, Headset, 
-  TrendingUp, Target, Layers, User, Navigation, ArrowRightLeft, Flag, Info,
-  ClipboardList, CheckCircle2, Truck, XCircle, Wallet
+  MapPin, Phone, RefreshCw, Headset, 
+  Layers, User, ClipboardList, CheckCircle2, Truck, XCircle, Wallet, Info
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -13,9 +12,14 @@ export default function BossDashboard() {
 
   const fetchOrders = async () => {
     setIsLoading(true);
-    const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    if (data) setOrders(data);
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (data) setOrders(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -30,8 +34,12 @@ export default function BossDashboard() {
     await supabase.from('orders').update({ status: newStatus }).eq('id', id);
   };
 
-  const today = new Date().toISOString().split('T')[0];
-  const todayOrders = orders.filter(o => o.created_at.startsWith(today));
+  // FIX LỖI MÚI GIỜ VIỆT NAM CHO BOSS
+  const vnTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"});
+  const todayObj = new Date(vnTime);
+  const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+  const todayOrders = orders.filter(o => o.created_at.startsWith(todayStr));
   
   const totalOrders = todayOrders.length;
   const completedOrders = todayOrders.filter(o => o.status === 'completed').length;
@@ -52,7 +60,6 @@ export default function BossDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-20 max-w-4xl mx-auto shadow-2xl border-x border-gray-200">
-      
       <header className="bg-white border-b border-gray-200 p-6 sticky top-0 z-30 flex justify-between items-center backdrop-blur-md bg-white/90">
         <div className="flex items-center gap-3">
           <div className="bg-orange-600 p-2.5 rounded-2xl shadow-lg shadow-orange-200"><Headset size={24} className="text-white" /></div>
@@ -67,8 +74,6 @@ export default function BossDashboard() {
       </header>
 
       <div className="p-6 space-y-6">
-        
-        {/* TỔNG QUAN TÀI CHÍNH */}
         <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[2rem] p-6 shadow-xl text-white">
            <div className="flex justify-between items-start mb-6">
               <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng doanh thu hôm nay</p><h2 className="text-3xl font-black text-orange-400">{totalSystemRevenue.toLocaleString('vi-VN')}đ</h2></div>
@@ -87,10 +92,9 @@ export default function BossDashboard() {
           <div className="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-sm"><p className="text-xs font-bold text-gray-400 uppercase mb-1">Tiền vốn Quán</p><h3 className="text-2xl font-black text-gray-900">{totalFoodCost.toLocaleString('vi-VN')}đ</h3></div>
         </div>
 
-        {/* QUẢN LÝ ĐƠN HÀNG (NGÔN NGỮ ĐIỀU PHỐI) */}
         <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden">
            <div className="p-6 border-b border-gray-100 bg-gray-50">
-              <h2 className="font-black text-gray-800 text-lg flex items-center gap-2"><Layers className="text-gray-400" /> BẢNG ĐIỀU PHỐI ĐƠN HÀNG</h2>
+              <h2 className="font-black text-gray-800 text-lg flex items-center gap-2"><Layers className="text-gray-400" /> BẢNG GIÁM SÁT ĐƠN HÀNG</h2>
            </div>
            
            <div className="divide-y divide-gray-100">
@@ -99,22 +103,22 @@ export default function BossDashboard() {
                   <div className="flex flex-col md:flex-row justify-between gap-6">
                     <div className="flex-grow space-y-4">
                       
-                      {/* TRẠNG THÁI HIỂN THỊ DÀNH CHO BOSS */}
                       <div className="flex items-center gap-3">
                         <span className="text-lg font-black text-gray-900">{order.order_code}</span>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                          order.status === 'pending' ? 'bg-red-100 text-red-700 animate-pulse border border-red-200' :
-                          order.status === 'tx1_picking' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'at_midpoint' ? 'bg-purple-100 text-purple-800' :
-                          order.status === 'tx2_delivering' ? 'bg-orange-100 text-orange-800' :
-                          order.status === 'cancelled' ? 'bg-gray-200 text-gray-600' :
-                          'bg-green-100 text-green-800'
+                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border-2 ${
+                          order.status === 'pending' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                          order.status === 'tx1_picking' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                          order.status === 'at_midpoint' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+                          order.status === 'tx2_delivering' ? 'bg-orange-50 text-orange-800 border-orange-200' :
+                          order.status === 'cancelled' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                          'bg-green-50 text-green-800 border-green-200'
                         }`}>
-                          {order.status === 'pending' ? '🔴 CHỜ DUYỆT ĐƠN' : 
-                           order.status === 'tx1_picking' ? '🛵 ĐANG MUA TẠI CÀ MAU' :
-                           order.status === 'at_midpoint' ? '📍 ĐANG CHỜ TẠI TRẠM' :
-                           order.status === 'tx2_delivering' ? '🛵 ĐANG GIAO CHO KHÁCH' : 
-                           order.status === 'cancelled' ? '❌ ĐÃ HỦY' : '✅ HOÀN TẤT'}
+                          {/* TRẠNG THÁI HIỂN THỊ DÀNH CHO BOSS (CHỈ NHÌN KHÔNG BẤM) */}
+                          {order.status === 'pending' ? '🔴 ĐỢI TÀI XẾ NHẬN ĐƠN' : 
+                           order.status === 'tx1_picking' ? '🛵 TX CÀ MAU ĐANG MUA' :
+                           order.status === 'at_midpoint' ? '📍 HÀNG ĐANG Ở TRẠM' :
+                           order.status === 'tx2_delivering' ? '🛵 TX HUYỆN ĐANG ĐI GIAO' : 
+                           order.status === 'cancelled' ? '❌ ĐÃ HỦY' : '✅ ĐÃ GIAO KHÁCH XONG'}
                         </span>
                       </div>
                       
@@ -144,20 +148,16 @@ export default function BossDashboard() {
                     <div className="md:w-64 flex flex-col justify-between items-end border-l border-gray-100 pl-4">
                       <div className="text-right w-full">
                         <p className="text-3xl font-black text-gray-900">{order.total_amount?.toLocaleString('vi-VN')}đ</p>
-                        <p className="text-[10px] font-black mt-2 px-3 py-1 rounded-lg uppercase tracking-wider inline-block text-white shadow-sm border border-gray-800 bg-gray-800">
+                        <p className="text-[10px] font-black mt-2 px-3 py-1 rounded-lg uppercase tracking-wider inline-block text-white shadow-sm bg-gray-800">
                           {order.payment_method === 'bank' ? '🏦 ĐÃ CHUYỂN KHOẢN' : '💵 THU TIỀN MẶT'}
                         </p>
                       </div>
 
-                      {/* NÚT BẤM DÀNH CHO BOSS ĐIỀU PHỐI (CHỮ NGHĨA QUẢN TRỊ) */}
                       <div className="w-full mt-8 space-y-3">
-                        {order.status === 'pending' && <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl text-sm active:scale-95 flex items-center justify-center gap-2 shadow-md"><Motorbike size={18}/> DUYỆT - GIAO TX CÀ MAU</button>}
-                        {order.status === 'tx1_picking' && <button onClick={() => updateStatus(order.id, 'at_midpoint')} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-sm active:scale-95 flex items-center justify-center gap-2 shadow-md"><MapPin size={18}/> XÁC NHẬN ĐẾN TRẠM</button>}
-                        {order.status === 'at_midpoint' && <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-600 text-white font-black py-4 rounded-xl text-sm active:scale-95 flex items-center justify-center gap-2 shadow-md"><ArrowRightLeft size={18}/> ĐIỀU PHỐI TX TUYẾN HUYỆN</button>}
-                        {order.status === 'tx2_delivering' && <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-600 text-white font-black py-4 rounded-xl text-sm active:scale-95 flex items-center justify-center gap-2 shadow-md"><Flag size={18}/> CHỐT ĐƠN - ĐÃ GIAO XONG</button>}
-                        
-                        {/* CHỈ BOSS MỚI CÓ QUYỀN HỦY ĐƠN */}
-                        {['pending', 'tx1_picking'].includes(order.status) && <button onClick={() => { if(window.confirm('Boss xác nhận Hủy đơn này?')) updateStatus(order.id, 'cancelled') }} className="w-full mt-3 text-[11px] text-red-500 font-bold uppercase tracking-wider hover:underline text-center block border border-red-100 py-2 rounded-lg bg-red-50">Hủy đơn hàng này</button>}
+                        {/* CHỈ GIỮ LẠI NÚT HỦY ĐƠN DÀNH CHO BOSS, CÒN LẠI ẨN HẾT */}
+                        {['pending', 'tx1_picking', 'at_midpoint'].includes(order.status) && (
+                          <button onClick={() => { if(window.confirm('Boss xác nhận Hủy đơn này?')) updateStatus(order.id, 'cancelled') }} className="w-full mt-3 text-[11px] text-red-500 font-bold uppercase tracking-wider hover:underline text-center block border border-red-100 py-3 rounded-lg bg-red-50 active:scale-95">Hủy bỏ đơn hàng này</button>
+                        )}
                       </div>
                     </div>
                   </div>
