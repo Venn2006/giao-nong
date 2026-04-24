@@ -134,27 +134,27 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 4 NÚT DỊCH VỤ - ĐÃ SỬA THÀNH /do-an */}
+        {/* 4 NÚT DỊCH VỤ - ĐÃ MỞ KHÓA TOÀN BỘ */}
         <div className="grid grid-cols-2 gap-3">
            <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
               <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Utensils size={28}/></div>
               <span className="font-black text-gray-800 text-sm">ĐỒ ĂN</span>
            </button>
-           <button className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 opacity-60">
+           <button onClick={() => router.push('/thuc-uong')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
               <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Coffee size={28}/></div>
               <span className="font-black text-gray-800 text-sm">THỨC UỐNG</span>
            </button>
-           <button className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 opacity-60">
+           <button onClick={() => router.push('/giao-hang')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
               <div className="bg-blue-50 p-4 rounded-full text-blue-500"><Box size={28}/></div>
               <span className="font-black text-gray-800 text-sm">GIAO HÀNG</span>
            </button>
-           <button className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 opacity-60">
+           <button onClick={() => router.push('/dat-xe')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
               <div className="bg-green-50 p-4 rounded-full text-green-500"><Car size={28}/></div>
               <span className="font-black text-gray-800 text-sm">ĐẶT XE</span>
            </button>
         </div>
 
-        {/* GỢI Ý NÓNG SỐT - ĐÃ SỬA THÀNH /do-an VÀ LINK BUCKET CHUẨN */}
+        {/* GỢI Ý NÓNG SỐT */}
         <div>
            <h2 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
              Gợi Ý Nóng Sốt <Flame className="text-red-500 fill-red-500" size={20} />
