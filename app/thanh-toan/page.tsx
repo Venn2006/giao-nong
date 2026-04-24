@@ -32,15 +32,8 @@ export default function CheckoutApp() {
     if (savedCart) setCart(JSON.parse(savedCart));
   }, []);
 
-  const handleApplyVoucher = () => {
-    const code = voucherCode.trim().toUpperCase();
-    if (!code) { setVoucherMessage(""); setDiscount(0); return; }
-    if (code === "GIAONONG") { setDiscount(15000); setVoucherMessage("Áp dụng thành công! Giảm 15.000đ"); } 
-    else { setDiscount(0); setVoucherMessage("Mã voucher không hợp lệ!"); }
-  };
-
   // ==========================================
-  // LOGIC TÍNH PHÍ SHIP BẬC THANG MỚI
+  // LOGIC TÍNH PHÍ SHIP BẬC THANG
   // ==========================================
   const tongTienDoAn = cart.reduce((sum, item) => sum + (item.gia * item.soLuong), 0);
   const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
@@ -79,7 +72,7 @@ export default function CheckoutApp() {
       delivery_address: customerAddress,
       items_summary: monAnText,
       total_amount: orderTotal,
-      shipping_fee: phiShip, // LƯU PHÍ SHIP VÀO DATABASE ĐỂ BOSS CHIA TIỀN
+      shipping_fee: phiShip, 
       payment_method: paymentMethod,
       is_paid: paymentMethod === 'bank' ? true : false,
       status: 'pending' 
@@ -89,7 +82,7 @@ export default function CheckoutApp() {
 
     setIsSubmitting(false);
     if (error) {
-      alert("Lỗi mạng, kiểm tra lại cột shipping_fee trên Supabase nha!");
+      alert("Lỗi mạng, thử lại nha!");
     } else {
       localStorage.removeItem("giao_nong_cart"); 
       localStorage.setItem("last_order_code", orderId);
@@ -150,12 +143,18 @@ export default function CheckoutApp() {
           <div className="flex justify-between text-xl font-black text-orange-600 mt-4 border-t border-gray-100 pt-4"><span>Tổng cộng</span><span>{orderTotal.toLocaleString('vi-VN')}đ</span></div>
         </div>
 
+        {/* NÚT THANH TOÁN UPDATE FULL */}
         <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
           <h2 className="font-black text-gray-800 mb-4 px-1 text-lg">Thanh toán</h2>
           <div className="space-y-3">
-            <label className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer ${paymentMethod === 'cash' ? 'border-orange-500 bg-orange-50' : 'border-gray-100'}`}>
+            <label className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'cash' ? 'border-orange-500 bg-orange-50' : 'border-gray-100'}`}>
               <div className="flex items-center gap-3"><div className={`p-2 rounded-full ${paymentMethod === 'cash' ? 'bg-orange-500 text-white' : 'bg-gray-100'}`}><Banknote size={20} /></div><div><p className="font-bold text-sm">Tiền mặt</p></div></div>
               <input type="radio" name="payment" className="w-5 h-5 accent-orange-500" checked={paymentMethod === 'cash'} onChange={() => setPaymentMethod('cash')} />
+            </label>
+            
+            <label className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'bank' ? 'border-orange-500 bg-orange-50' : 'border-gray-100'}`}>
+              <div className="flex items-center gap-3"><div className={`p-2 rounded-full ${paymentMethod === 'bank' ? 'bg-orange-500 text-white' : 'bg-gray-100'}`}><QrCode size={20} /></div><div><p className="font-bold text-sm">Chuyển khoản (Mã QR)</p></div></div>
+              <input type="radio" name="payment" className="w-5 h-5 accent-orange-500" checked={paymentMethod === 'bank'} onChange={() => setPaymentMethod('bank')} />
             </label>
           </div>
         </div>
