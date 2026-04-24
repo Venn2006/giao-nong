@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { 
   MapPin, Phone, RefreshCw, User, CheckCircle2, 
-  ClipboardList, Truck, XCircle, Banknote, QrCode, Navigation
+  ClipboardList, Truck, XCircle, Banknote, QrCode, Navigation, AlertTriangle
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -37,7 +37,6 @@ export default function ShipperApp() {
     await supabase.from('orders').update({ status: newStatus }).eq('id', id);
   };
 
-  // FIX MÚI GIỜ CHUẨN VIỆT NAM ĐỂ TÀI XẾ THẤY ĐƠN
   const vnTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"});
   const todayObj = new Date(vnTime);
   const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
@@ -47,7 +46,6 @@ export default function ShipperApp() {
     ['pending', 'tx1_picking', 'at_midpoint', 'tx2_delivering', 'completed', 'cancelled'].includes(o.status)
   );
 
-  // LOGIC LỌC TUYẾN HUYỆN
   if (activeRoute !== "Tất cả") {
     todayOrders = todayOrders.filter(o => {
       const address = (o.delivery_address || "").toLowerCase();
@@ -107,7 +105,7 @@ export default function ShipperApp() {
            <h2 className="text-sm font-black text-blue-700 flex items-center gap-2 mb-4 uppercase tracking-wider"><ClipboardList size={18}/> Chốt Ca {activeRoute !== 'Tất cả' ? `(${activeRoute})` : ''}</h2>
            <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="bg-orange-50 p-4 rounded-xl border border-orange-200"><p className="text-[11px] font-black text-gray-600 uppercase flex items-center gap-1 mb-2"><Banknote size={14} className="text-orange-500"/> Tiền mặt nộp</p><p className="text-xl font-black text-orange-700">{cashToSubmit.toLocaleString('vi-VN')}đ</p></div>
-              <div className="bg-green-50 p-4 rounded-xl border border-green-200"><p className="text-[11px] font-black text-gray-600 uppercase flex items-center gap-1 mb-2"><QrCode size={14} className="text-green-500"/> Đã chuyển khoản</p><p className="text-xl font-black text-green-700">{bankToBoss.toLocaleString('vi-VN')}đ</p></div>
+              <div className="bg-green-50 p-4 rounded-xl border border-green-200"><p className="text-[11px] font-black text-gray-600 uppercase flex items-center gap-1 mb-2"><QrCode size={14} className="text-green-500"/> Đã CK (Boss)</p><p className="text-xl font-black text-green-700">{bankToBoss.toLocaleString('vi-VN')}đ</p></div>
            </div>
            <div className="bg-gray-900 p-4 rounded-xl flex justify-between items-center text-white shadow-md">
               <p className="text-xs font-black uppercase tracking-wider">Tổng Doanh Thu</p>
@@ -129,12 +127,12 @@ export default function ShipperApp() {
                    <span className={`px-3 py-1.5 rounded-lg text-xs font-black border-2 uppercase ${
                       order.status === 'pending' ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 
                       order.status === 'tx1_picking' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
-                      order.status === 'at_midpoint' ? 'bg-purple-50 text-purple-700 border-purple-200' : 
+                      order.status === 'at_midpoint' ? 'bg-red-500 text-white border-red-600 animate-bounce' : 
                       'bg-orange-50 text-orange-700 border-orange-200'
                    }`}>
                      {order.status === 'pending' ? '🔴 BẤM NHẬN ĐƠN ĐI' : 
-                      order.status === 'tx1_picking' ? '🛵 MUA Ở CÀ MAU' : 
-                      order.status === 'at_midpoint' ? '📍 HÀNG ĐANG Ở TRẠM' : '🛵 ĐANG GIAO KHÁCH'}
+                      order.status === 'tx1_picking' ? '🛵 ĐANG MUA TẠI CÀ MAU' : 
+                      order.status === 'at_midpoint' ? '🚨 TX1 ĐANG CHẠY XUỐNG BỜ ĐẬP' : '🛵 ĐANG GIAO KHÁCH'}
                    </span>
                 </div>
                 
@@ -166,18 +164,26 @@ export default function ShipperApp() {
                 </div>
 
                 <div className="space-y-3 mt-2">
+                   {/* ĐÃ FIX LINK GOOGLE MAPS HOÀN HẢO */}
                    {order.gps_location && (
-                      <a href={`http://googleusercontent.com/maps.google.com/maps?daddr=${order.gps_location}&travelmode=motorcycle`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-gray-100 text-blue-700 font-black w-full py-4 rounded-xl active:scale-95 text-sm uppercase border-2 border-gray-200 transition-colors hover:bg-gray-200">
+                      <a href={`https://www.google.com/maps?daddr=${order.gps_location}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-gray-100 text-blue-700 font-black w-full py-4 rounded-xl active:scale-95 text-sm uppercase border-2 border-gray-200 transition-colors hover:bg-gray-200">
                         <Navigation size={20} className="fill-blue-700" /> Bản đồ chỉ đường (Maps)
                       </a>
                    )}
 
-                   {/* NÚT BẤM DÀNH CHO TÀI XẾ TỰ XỬ LÝ VỚI NHAU */}
-                   {order.status === 'pending' && <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2"><Truck size={20}/> [TX CÀ MAU] NHẬN ĐI MUA</button>}
-                   {order.status === 'tx1_picking' && <button onClick={() => updateStatus(order.id, 'at_midpoint')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2 border-[4px] border-blue-400"><MapPin size={20}/> [TX CÀ MAU] ĐÃ BỎ HÀNG XUỐNG TRẠM</button>}
+                   {/* KỊCH BẢN CHẠY TIẾP SỨC ĐÃ CẬP NHẬT */}
+                   {order.status === 'pending' && <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2"><Truck size={20}/> [TX CÀ MAU] NHẬN ĐI MUA ĐỒ</button>}
+                   {order.status === 'tx1_picking' && <button onClick={() => updateStatus(order.id, 'at_midpoint')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2 border-[4px] border-blue-400"><MapPin size={20}/> [TX CÀ MAU] XUẤT PHÁT XUỐNG BỜ ĐẬP</button>}
                    
-                   {order.status === 'at_midpoint' && <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2"><Truck size={20}/> [TX HUYỆN] ĐÃ LẤY HÀNG ĐI GIAO</button>}
-                   {order.status === 'tx2_delivering' && <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2 border-[4px] border-green-400"><CheckCircle2 size={20}/> [TX HUYỆN] GIAO THÀNH CÔNG</button>}
+                   {/* Khi TX Cà Mau bấm xuất phát, TX Huyện sẽ thấy đỏ chót để chạy theo */}
+                   {order.status === 'at_midpoint' && (
+                     <div className="space-y-2">
+                       <p className="text-xs text-red-600 font-bold text-center flex items-center justify-center gap-1"><AlertTriangle size={14}/> TX Huyện chạy ra Bờ Đập lấy hàng ngay!</p>
+                       <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2"><Truck size={20}/> [TX HUYỆN] ĐÃ GẶP, ĐÃ LẤY HÀNG ĐI GIAO</button>
+                     </div>
+                   )}
+                   
+                   {order.status === 'tx2_delivering' && <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg flex justify-center gap-2 border-[4px] border-green-400"><CheckCircle2 size={20}/> [TX HUYỆN] GIAO KHÁCH THÀNH CÔNG</button>}
                 </div>
               </div>
             ))

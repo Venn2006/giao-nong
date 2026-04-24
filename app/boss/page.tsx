@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { 
   MapPin, Phone, RefreshCw, Headset, 
-  Layers, User, ClipboardList, CheckCircle2, Truck, XCircle, Wallet, Info
+  Layers, User, ClipboardList, CheckCircle2, Truck, XCircle, Wallet, Info, Navigation
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -34,7 +34,6 @@ export default function BossDashboard() {
     await supabase.from('orders').update({ status: newStatus }).eq('id', id);
   };
 
-  // FIX LỖI MÚI GIỜ VIỆT NAM CHO BOSS
   const vnTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"});
   const todayObj = new Date(vnTime);
   const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
@@ -113,11 +112,11 @@ export default function BossDashboard() {
                           order.status === 'cancelled' ? 'bg-gray-100 text-gray-500 border-gray-200' :
                           'bg-green-50 text-green-800 border-green-200'
                         }`}>
-                          {/* TRẠNG THÁI HIỂN THỊ DÀNH CHO BOSS (CHỈ NHÌN KHÔNG BẤM) */}
+                          {/* TRẠNG THÁI HIỂN THỊ ĐỒNG BỘ VỚI KỊCH BẢN MỚI */}
                           {order.status === 'pending' ? '🔴 ĐỢI TÀI XẾ NHẬN ĐƠN' : 
-                           order.status === 'tx1_picking' ? '🛵 TX CÀ MAU ĐANG MUA' :
-                           order.status === 'at_midpoint' ? '📍 HÀNG ĐANG Ở TRẠM' :
-                           order.status === 'tx2_delivering' ? '🛵 TX HUYỆN ĐANG ĐI GIAO' : 
+                           order.status === 'tx1_picking' ? '🛵 TX CÀ MAU ĐANG ĐI MUA' :
+                           order.status === 'at_midpoint' ? '📍 2 TÀI XẾ ĐANG CHẠY GẶP NHAU' :
+                           order.status === 'tx2_delivering' ? '🛵 TX HUYỆN ĐANG ĐI GIAO KHÁCH' : 
                            order.status === 'cancelled' ? '❌ ĐÃ HỦY' : '✅ ĐÃ GIAO KHÁCH XONG'}
                         </span>
                       </div>
@@ -142,6 +141,15 @@ export default function BossDashboard() {
                              <p className="text-[11px] font-black text-orange-900 uppercase leading-relaxed">{order.shipping_note}</p>
                           </div>
                         )}
+                        
+                        {/* FIX LINK GOOGLE MAPS CHO BOSS LUÔN */}
+                        {order.gps_location && (
+                          <a href={`https://www.google.com/maps?daddr=${order.gps_location}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-blue-50 text-blue-600 w-full py-3 rounded-xl transition-all active:scale-95 mt-2 border border-blue-200">
+                            <Navigation size={16} />
+                            <span className="font-bold text-xs uppercase">Xem Bản Đồ (GPS)</span>
+                          </a>
+                        )}
+
                       </div>
                     </div>
 
@@ -154,7 +162,6 @@ export default function BossDashboard() {
                       </div>
 
                       <div className="w-full mt-8 space-y-3">
-                        {/* CHỈ GIỮ LẠI NÚT HỦY ĐƠN DÀNH CHO BOSS, CÒN LẠI ẨN HẾT */}
                         {['pending', 'tx1_picking', 'at_midpoint'].includes(order.status) && (
                           <button onClick={() => { if(window.confirm('Boss xác nhận Hủy đơn này?')) updateStatus(order.id, 'cancelled') }} className="w-full mt-3 text-[11px] text-red-500 font-bold uppercase tracking-wider hover:underline text-center block border border-red-100 py-3 rounded-lg bg-red-50 active:scale-95">Hủy bỏ đơn hàng này</button>
                         )}
