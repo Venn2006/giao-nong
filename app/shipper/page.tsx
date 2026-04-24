@@ -125,7 +125,7 @@ export default function ShipperApp() {
               
               <div className="bg-green-50 p-4 rounded-xl border border-green-200">
                 <p className="text-[11px] font-black text-gray-600 uppercase flex items-center gap-1 mb-2">
-                  <QrCode size={14} className="text-green-500"/> Khách CK (Boss)
+                  <QrCode size={14} className="text-green-500"/> Khách CK Boss
                 </p>
                 <p className="text-xl font-black text-green-700">{bankToBoss.toLocaleString('vi-VN')}đ</p>
               </div>
@@ -146,7 +146,6 @@ export default function ShipperApp() {
           ) : (
             activeOrders.map((order) => {
               
-              // TRÍ TUỆ NHÂN TẠO: NHẬN DIỆN ĐỦ 4 LOẠI ĐƠN HÀNG
               const summaryText = order.items_summary || "";
               const isPackage = summaryText.includes('GIAO HÀNG');
               const isRide = summaryText.includes('ĐẶT XE');
@@ -172,7 +171,7 @@ export default function ShipperApp() {
                           isRide ? <Car size={12}/> : 
                           isErrand ? <ShoppingBag size={12}/> : <MapPin size={12}/>}
                           
-                         {isPackage ? 'KIỆN HÀNG LIÊN HUYỆN' : 
+                         {isPackage ? 'KIỆN HÀNG GOM TUYẾN' : 
                           isRide ? 'GỌI XE ÔM/TAXI' : 
                           isErrand ? 'ĐƠN MUA HỘ ĐA NĂNG' : 'GIAO ĐỒ ĂN/NƯỚC NÓNG'}
                        </p>
@@ -187,15 +186,15 @@ export default function ShipperApp() {
                        {order.status === 'pending' && '🔴 ĐANG CHỜ TÀI XẾ'}
                        
                        {order.status === 'tx1_picking' && (
-                         isPackage ? '📦 ĐANG GOM HÀNG LÊN XE' : 
-                         isErrand ? '🛍️ ĐANG ĐI MUA HÀNG' : '🛵 ĐANG MUA TẠI QUÁN'
+                         isPackage ? '📦 ĐANG GOM LÊN XE' : 
+                         isErrand ? '🛍️ ĐANG MUA HÀNG' : '🛵 ĐANG MUA TẠI QUÁN'
                        )}
                        
-                       {order.status === 'at_midpoint' && '📍 HÀNG ĐANG NẰM Ở TRẠM'}
+                       {order.status === 'at_midpoint' && '📍 ĐANG GẶP NHAU ĐỔI HÀNG'}
                        
                        {order.status === 'tx2_delivering' && (
-                         isPackage ? '🚚 ĐANG CHẠY TRÊN TUYẾN' : 
-                         isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG GIAO ĐẾN KHÁCH'
+                         isPackage ? '🚚 ĐANG CHẠY ĐI GIAO' : 
+                         isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG ĐI GIAO'
                        )}
                      </span>
                   </div>
@@ -244,14 +243,15 @@ export default function ShipperApp() {
 
                   <div className="space-y-3 mt-2">
                      
+                     {/* ĐÃ FIX LINK MAPS SANG API CHÍNH THỨC CỦA GOOGLE */}
                      {order.gps_location && (
                         <a 
-                          href={`http://googleusercontent.com/maps.google.com/maps?daddr=${order.gps_location}&travelmode=driving`} 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.gps_location)}`} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="flex items-center justify-center gap-2 bg-gray-100 text-blue-700 font-black w-full py-4 rounded-xl active:scale-95 text-sm uppercase border-2 border-gray-300 transition-colors"
                         >
-                          <Navigation size={20} className="fill-blue-700" /> Mở Google Maps
+                          <Navigation size={20} className="fill-blue-700" /> Mở Bản Đồ Chỉ Đường
                         </a>
                      )}
 
@@ -260,59 +260,64 @@ export default function ShipperApp() {
                        <>
                          {order.status === 'pending' && (
                            <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg">
-                             <Truck className="inline mr-2" size={20}/> [TX CÀ MAU] NHẬN ĐI MUA ĐỒ
+                             <Truck className="inline mr-2" size={20}/> [TX TUYẾN 1] NHẬN ĐI MUA ĐỒ
                            </button>
                          )}
-                         
                          {order.status === 'tx1_picking' && (
                            <button onClick={() => updateStatus(order.id, 'at_midpoint')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-blue-400">
-                             <MapPin className="inline mr-2" size={20}/> [TX CÀ MAU] XUẤT PHÁT ĐI BỜ ĐẬP
+                             <MapPin className="inline mr-2" size={20}/> [TX TUYẾN 1] CHẠY ĐẾN BỜ ĐẬP (ĐỔI HÀNG)
                            </button>
                          )}
-                         
                          {order.status === 'at_midpoint' && (
                            <div className="space-y-2">
                              <p className="text-xs text-red-600 font-bold text-center flex items-center justify-center gap-1">
-                               <AlertTriangle size={14}/> TX Cà Mau đang chạy xuống, ra lấy lẹ đi!
+                               <AlertTriangle size={14}/> 2 Tài xế gặp nhau tại Bờ Đập đổi chéo hàng!
                              </p>
                              <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg">
-                               <Truck className="inline mr-2" size={20}/> [TX HUYỆN] ĐÃ NHẬN HÀNG, ĐI GIAO
+                               <Truck className="inline mr-2" size={20}/> [TX TUYẾN 2] ĐÃ NHẬN CHUYỂN GIAO, ĐI GIAO
                              </button>
                            </div>
                          )}
-                         
                          {order.status === 'tx2_delivering' && (
                            <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-green-400">
-                             <CheckCircle2 className="inline mr-2" size={20}/> [TX HUYỆN] GIAO KHÁCH THÀNH CÔNG
+                             <CheckCircle2 className="inline mr-2" size={20}/> [TX TUYẾN 2] GIAO KHÁCH THÀNH CÔNG
                            </button>
                          )}
                        </>
                      )}
 
-                     {/* LUỒNG 2: GIAO HÀNG KIỆN (CHẠY GOM CHÀNH XE) */}
+                     {/* LUỒNG 2: GIAO HÀNG KIỆN (CHẠY TIẾP SỨC ĐỔI CHÉO BỜ ĐẬP Y NHƯ ĐỒ ĂN) */}
                      {isPackage && (
                        <>
                          {order.status === 'pending' && (
                            <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg">
-                             <Package className="inline mr-2" size={20}/> [TX TRẠM] GOM KIỆN HÀNG NÀY LÊN XE
+                             <Package className="inline mr-2" size={20}/> [TX TUYẾN 1] GOM KIỆN HÀNG NÀY LÊN XE
                            </button>
                          )}
-                         
                          {order.status === 'tx1_picking' && (
-                           <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-orange-400">
-                             <Truck className="inline mr-2" size={20}/> [TX TRẠM] XE XUẤT BẾN - ĐI GIAO HÀNG
+                           <button onClick={() => updateStatus(order.id, 'at_midpoint')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-blue-400">
+                             <MapPin className="inline mr-2" size={20}/> [TX TUYẾN 1] CHẠY ĐẾN BỜ ĐẬP (ĐỔI HÀNG)
                            </button>
                          )}
-                         
+                         {order.status === 'at_midpoint' && (
+                           <div className="space-y-2">
+                             <p className="text-xs text-red-600 font-bold text-center flex items-center justify-center gap-1">
+                               <AlertTriangle size={14}/> 2 Tài xế gặp nhau tại Bờ Đập đổi chéo hàng!
+                             </p>
+                             <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg">
+                               <Truck className="inline mr-2" size={20}/> [TX TUYẾN 2] ĐÃ NHẬN CHUYỂN GIAO, ĐI GIAO
+                             </button>
+                           </div>
+                         )}
                          {order.status === 'tx2_delivering' && (
                            <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-green-400">
-                             <CheckCircle2 className="inline mr-2" size={20}/> [TX TRẠM] ĐÃ GIAO XONG KIỆN NÀY
+                             <CheckCircle2 className="inline mr-2" size={20}/> [TX TUYẾN 2] ĐÃ GIAO KIỆN NÀY THÀNH CÔNG
                            </button>
                          )}
                        </>
                      )}
 
-                     {/* LUỒNG 3: ĐẶT XE (ĐÓN VÀ CHỞ KHÁCH) */}
+                     {/* LUỒNG 3: ĐẶT XE (ĐÓN VÀ CHỞ TRỰC TIẾP) */}
                      {isRide && (
                        <>
                          {order.status === 'pending' && (
@@ -320,7 +325,6 @@ export default function ShipperApp() {
                              <Car className="inline mr-2" size={20}/> [TÀI XẾ] NHẬN CUỐC, ĐẾN ĐÓN KHÁCH
                            </button>
                          )}
-                         
                          {order.status === 'tx2_delivering' && (
                            <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-green-400">
                              <CheckCircle2 className="inline mr-2" size={20}/> [TÀI XẾ] HOÀN THÀNH CUỐC XE
@@ -329,7 +333,7 @@ export default function ShipperApp() {
                        </>
                      )}
 
-                     {/* LUỒNG 4: MUA HỘ ĐA NĂNG (MỚI BỔ SUNG) */}
+                     {/* LUỒNG 4: MUA HỘ ĐA NĂNG */}
                      {isErrand && (
                        <>
                          {order.status === 'pending' && (
@@ -337,13 +341,11 @@ export default function ShipperApp() {
                              <ShoppingBag className="inline mr-2" size={20}/> [TX] NHẬN ĐI MUA HỘ ĐƠN NÀY
                            </button>
                          )}
-                         
                          {order.status === 'tx1_picking' && (
                            <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-orange-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-orange-400">
                              <Truck className="inline mr-2" size={20}/> [TX] ĐÃ MUA XONG, ĐANG ĐI GIAO
                            </button>
                          )}
-                         
                          {order.status === 'tx2_delivering' && (
                            <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-green-400">
                              <CheckCircle2 className="inline mr-2" size={20}/> [TX] GIAO KHÁCH THÀNH CÔNG

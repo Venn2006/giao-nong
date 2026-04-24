@@ -183,8 +183,8 @@ export default function BossDashboard() {
                           }`}>
                             {order.status === 'pending' && '🔴 ĐỢI TÀI XẾ NHẬN ĐƠN'}
                             {order.status === 'tx1_picking' && (isPackage ? '📦 ĐANG GOM KIỆN HÀNG' : isErrand ? '🛍️ ĐANG ĐI MUA HỘ' : '🛵 ĐANG MUA TẠI QUÁN')}
-                            {order.status === 'at_midpoint' && '📍 2 TÀI XẾ ĐANG CHẠY GẶP NHAU (TRẠM)'}
-                            {order.status === 'tx2_delivering' && (isPackage ? '🚚 ĐANG CHỞ KIỆN HÀNG' : isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG ĐI GIAO ĐỒ')}
+                            {order.status === 'at_midpoint' && '📍 2 TÀI XẾ ĐANG CHẠY ĐẾN BỜ ĐẬP ĐỔI HÀNG'}
+                            {order.status === 'tx2_delivering' && (isPackage ? '🚚 ĐANG CHỞ KIỆN ĐI GIAO' : isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG ĐI GIAO ĐỒ')}
                             {order.status === 'cancelled' && '❌ ĐÃ HỦY'}
                             {order.status === 'completed' && '✅ ĐÃ HOÀN TẤT'}
                           </span>
@@ -226,16 +226,16 @@ export default function BossDashboard() {
                             </div>
                           )}
                           
-                          {/* LINK BẢN ĐỒ CHUẨN XÁC DÀNH CHO BOSS */}
+                          {/* LINK BẢN ĐỒ CHUẨN XÁC DÀNH CHO BOSS MỞ BẰNG GOOGLE MAPS */}
                           {order.gps_location && (
                             <a 
-                              href={`http://googleusercontent.com/maps.google.com/maps?daddr=${order.gps_location}&travelmode=driving`} 
+                              href={`https://www.google.com/maps?q=${encodeURIComponent(order.gps_location)}`} 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="flex items-center justify-center gap-2 bg-blue-50 text-blue-600 w-full py-3 rounded-xl transition-all active:scale-95 mt-2 border border-blue-200"
                             >
                               <Navigation size={16} />
-                              <span className="font-bold text-xs uppercase">Xem Bản Đồ Khách Hàng (GPS)</span>
+                              <span className="font-bold text-xs uppercase">Xem Bản Đồ (Google Maps)</span>
                             </a>
                           )}
                         </div>
