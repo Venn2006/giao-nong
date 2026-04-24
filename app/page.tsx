@@ -9,7 +9,6 @@ export default function HomePage() {
   const [userName, setUserName] = useState("Khách Mới");
   const [userPhone, setUserPhone] = useState("Chưa cập nhật SĐT");
   
-  // STATE CHO POPUP ĐĂNG KÝ / CẬP NHẬT TÀI KHOẢN
   const [showProfile, setShowProfile] = useState(false);
   const [tempName, setTempName] = useState("");
   const [tempPhone, setTempPhone] = useState("");
@@ -25,13 +24,11 @@ export default function HomePage() {
   const [timeLeft, setTimeLeft] = useState<{ active: any, totalMinutes: number, seconds: number } | null>(null);
 
   useEffect(() => {
-    // Load thông tin khách hàng nếu đã lưu
     const savedUser = localStorage.getItem("giao_nong_user");
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
       if (parsed.name) setUserName(parsed.name);
       if (parsed.phone) setUserPhone(parsed.phone);
-      
       setTempName(parsed.name || "");
       setTempPhone(parsed.phone || "");
       setTempAddress(parsed.address || "");
@@ -71,7 +68,6 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // HÀM LƯU TÀI KHOẢN
   const handleSaveProfile = () => {
     if (!tempName || !tempPhone) {
       alert("Cô/Chú vui lòng điền ít nhất Tên và Số điện thoại nhé!");
@@ -86,7 +82,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-24 max-w-md mx-auto shadow-2xl relative">
-      
       <header className="bg-white p-4 sticky top-0 z-20 shadow-sm rounded-b-2xl flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black text-orange-600 tracking-tight">GIAO NÓNG</h1>
@@ -101,12 +96,7 @@ export default function HomePage() {
       </header>
 
       <div className="p-4 space-y-5">
-        
-        {/* MEMBERSHIP CARD - BẤM VÀO ĐỂ MỞ POPUP ĐĂNG KÝ */}
-        <div 
-          onClick={() => setShowProfile(true)}
-          className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden cursor-pointer active:scale-95 transition-transform"
-        >
+        <div onClick={() => setShowProfile(true)} className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden cursor-pointer active:scale-95 transition-transform">
            <div className="absolute -right-4 -bottom-4 opacity-10"><Zap size={120} /></div>
            <div className="flex justify-between items-start mb-6 relative z-10">
               <div className="flex items-center gap-2">
@@ -114,7 +104,6 @@ export default function HomePage() {
                  <span className="font-black text-xs uppercase tracking-wider bg-white/20 px-2 py-1 rounded">Bấm cập nhật hồ sơ</span>
               </div>
            </div>
-           
            <div className="flex justify-between items-end relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase">{userName}</h2>
@@ -127,18 +116,13 @@ export default function HomePage() {
            </div>
         </div>
 
-        {/* ĐỒNG HỒ ĐẾM NGƯỢC */}
         {timeLeft && (
           <div className="bg-[#bd4a1c] rounded-[2rem] p-6 text-white text-center shadow-xl relative border border-[#a44216]">
             <p className="text-xs font-black mb-4 uppercase tracking-wider text-orange-100">Hôm nay, ĐANG CHỐT ĐƠN {timeLeft.active.name}</p>
             <div className="flex justify-center items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl w-24 h-24 flex items-center justify-center shadow-inner">
-                <span className="text-5xl font-black">{String(timeLeft.totalMinutes).padStart(2, '0')}</span>
-              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl w-24 h-24 flex items-center justify-center shadow-inner"><span className="text-5xl font-black">{String(timeLeft.totalMinutes).padStart(2, '0')}</span></div>
               <span className="text-4xl font-black pb-2 opacity-80 animate-pulse">:</span>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl w-24 h-24 flex items-center justify-center shadow-inner">
-                <span className="text-5xl font-black">{String(timeLeft.seconds).padStart(2, '0')}</span>
-              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl w-24 h-24 flex items-center justify-center shadow-inner"><span className="text-5xl font-black">{String(timeLeft.seconds).padStart(2, '0')}</span></div>
             </div>
             <div className="bg-black/20 inline-block px-4 py-2 rounded-full mt-5">
               <p className="text-[10px] font-bold text-orange-100 uppercase">Giao: {timeLeft.active.delivery} • Chốt: {timeLeft.active.cutoff}</p>
@@ -146,6 +130,7 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* 4 NÚT DỊCH VỤ ĐÃ KHÔI PHỤC ĐẦY ĐỦ */}
         <div className="grid grid-cols-2 gap-3">
            <button onClick={() => router.push('/quan')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
               <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Utensils size={28}/></div>
@@ -155,12 +140,17 @@ export default function HomePage() {
               <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Coffee size={28}/></div>
               <span className="font-black text-gray-800 text-sm">THỨC UỐNG</span>
            </button>
+           <button className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 opacity-60">
+              <div className="bg-blue-50 p-4 rounded-full text-blue-500"><Box size={28}/></div>
+              <span className="font-black text-gray-800 text-sm">GIAO HÀNG</span>
+           </button>
+           <button className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 opacity-60">
+              <div className="bg-green-50 p-4 rounded-full text-green-500"><Car size={28}/></div>
+              <span className="font-black text-gray-800 text-sm">ĐẶT XE</span>
+           </button>
         </div>
       </div>
 
-      {/* ==================================================== */}
-      {/* POPUP (MODAL) CẬP NHẬT TÀI KHOẢN                     */}
-      {/* ==================================================== */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md sm:rounded-[2rem] rounded-t-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
@@ -168,30 +158,17 @@ export default function HomePage() {
               <h2 className="text-xl font-black text-gray-800 flex items-center gap-2"><User className="text-orange-500"/> Hồ sơ của bạn</h2>
               <button onClick={() => setShowProfile(false)} className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200"><X size={20}/></button>
             </div>
-            
             <div className="space-y-4 mb-6">
-              <div className="relative">
-                <User className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="Tên của bạn..." className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-xl outline-orange-500 font-medium text-gray-800" />
-              </div>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input type="tel" value={tempPhone} onChange={(e) => setTempPhone(e.target.value)} placeholder="Số điện thoại..." className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-xl outline-orange-500 font-medium text-gray-800" />
-              </div>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input type="text" value={tempAddress} onChange={(e) => setTempAddress(e.target.value)} placeholder="Địa chỉ mặc định..." className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-xl outline-orange-500 font-medium text-gray-800" />
-              </div>
-              <p className="text-[10px] text-gray-400 italic text-center">*Thông tin sẽ được tự động điền khi bạn thanh toán đơn hàng.</p>
+              <div className="relative"><User className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="Tên của bạn..." className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-xl outline-orange-500 font-medium text-gray-800" /></div>
+              <div className="relative"><Phone className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="tel" value={tempPhone} onChange={(e) => setTempPhone(e.target.value)} placeholder="Số điện thoại..." className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-xl outline-orange-500 font-medium text-gray-800" /></div>
+              <div className="relative"><MapPin className="absolute left-3 top-3.5 text-gray-400" size={18} /><input type="text" value={tempAddress} onChange={(e) => setTempAddress(e.target.value)} placeholder="Địa chỉ mặc định..." className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-xl outline-orange-500 font-medium text-gray-800" /></div>
             </div>
-
             <button onClick={handleSaveProfile} className="w-full bg-orange-600 text-white font-black text-lg py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all">
               <Save size={20} /> LƯU THÔNG TIN
             </button>
           </div>
         </div>
       )}
-
     </div>
   );
 }
