@@ -179,6 +179,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="bg-black/20 inline-block px-4 py-2 rounded-full mt-5">
+            {/* THÊM CHỮ "TRƯỚC" VÀO ĐÂY */}
             <p className="text-[10px] font-bold text-orange-100 uppercase">
               Giao: {timeLeft.active.delivery} • Chốt trước: {timeLeft.active.cutoff}
             </p>
@@ -255,6 +256,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <div className="text-right">
+                      {/* THÊM CHỮ "TRƯỚC" VÀO ĐÂY */}
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chốt đơn trước</p>
                       <p className={`text-lg font-black ${isActive ? 'text-orange-600' : 'text-gray-900'}`}>{s.cutoff}</p>
                     </div>
