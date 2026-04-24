@@ -134,9 +134,9 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 4 NÚT DỊCH VỤ */}
+        {/* 4 NÚT DỊCH VỤ - ĐÃ SỬA THÀNH /do-an */}
         <div className="grid grid-cols-2 gap-3">
-           <button onClick={() => router.push('/quan')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
+           <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all">
               <div className="bg-orange-50 p-4 rounded-full text-orange-500"><Utensils size={28}/></div>
               <span className="font-black text-gray-800 text-sm">ĐỒ ĂN</span>
            </button>
@@ -154,15 +154,15 @@ export default function HomePage() {
            </button>
         </div>
 
-        {/* GỢI Ý NÓNG SỐT - ĐÃ CẬP NHẬT LINK BUCKET CHUẨN */}
+        {/* GỢI Ý NÓNG SỐT - ĐÃ SỬA THÀNH /do-an VÀ LINK BUCKET CHUẨN */}
         <div>
            <h2 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
              Gợi Ý Nóng Sốt <Flame className="text-red-500 fill-red-500" size={20} />
            </h2>
            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
               
-              {/* Món 1: Link Bucket Bún Riêu */}
-              <div onClick={() => router.push('/quan')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
+              {/* Món 1 */}
+              <div onClick={() => router.push('/do-an')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
                  <img src="https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/bun-rieu.jpg" alt="Bún Riêu" className="w-full h-32 object-cover rounded-xl mb-3"/>
                  <div className="flex gap-1.5 mb-2">
                     <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded flex items-center gap-1"><Star size={10} className="fill-orange-600"/> 4.8</span>
@@ -175,8 +175,8 @@ export default function HomePage() {
                  </div>
               </div>
 
-              {/* Món 2: Link Bucket Cơm Tấm */}
-              <div onClick={() => router.push('/quan')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
+              {/* Món 2 */}
+              <div onClick={() => router.push('/do-an')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
                  <img src="https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/com-tam.webp" alt="Cơm Tấm" className="w-full h-32 object-cover rounded-xl mb-3"/>
                  <div className="flex gap-1.5 mb-2">
                     <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded flex items-center gap-1"><Star size={10} className="fill-orange-600"/> 4.9</span>
