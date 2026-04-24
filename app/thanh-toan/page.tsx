@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Banknote, QrCode, ArrowLeft, Loader2, MapPin, Phone, User, Receipt, Info, Navigation } from "lucide-react";
+import { Banknote, QrCode, ArrowLeft, Loader2, MapPin, Phone, User, Receipt, Info, Navigation, Plus, Minus, Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase"; 
 import { useRouter } from "next/navigation";
 
@@ -15,7 +15,6 @@ export default function CheckoutApp() {
   const [customerAddress, setCustomerAddress] = useState("");
   const [shippingNote, setShippingNote] = useState("");
 
-  // STATE LƯU VỊ TRÍ GPS
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationError, setLocationError] = useState("");
   const [isLocating, setIsLocating] = useState(false);
@@ -32,7 +31,6 @@ export default function CheckoutApp() {
     if (savedCart) setCart(JSON.parse(savedCart));
   }, []);
 
-  // HÀM ÉP LẤY GPS
   const requestLocation = () => {
     setIsLocating(true);
     setLocationError("");
@@ -54,23 +52,46 @@ export default function CheckoutApp() {
     );
   };
 
+  // ==========================================
+  // HÀM CẬP NHẬT GIỎ HÀNG (CỘNG / TRỪ / XÓA)
+  // ==========================================
+  const updateQuantity = (index: number, delta: number) => {
+    const newCart = [...cart];
+    newCart[index].soLuong += delta;
+    if (newCart[index].soLuong <= 0) {
+      newCart.splice(index, 1); // Xóa luôn nếu số lượng tụt về 0
+    }
+    setCart(newCart);
+    localStorage.setItem("giao_nong_cart", JSON.stringify(newCart));
+  };
+
+  const removeItem = (index: number) => {
+    const newCart = [...cart];
+    newCart.splice(index, 1);
+    setCart(newCart);
+    localStorage.setItem("giao_nong_cart", JSON.stringify(newCart));
+  };
+
+  // ==========================================
+  // LOGIC TÍNH TIỀN VÀ BẢNG GIÁ SHIP MỚI
+  // ==========================================
   const tongTienDoAn = cart.reduce((sum, item) => sum + (item.gia * item.soLuong), 0);
   const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
 
-  let phiShip = 10000;
-  if (totalQty <= 4) phiShip = 10000;
-  else if (totalQty === 5) phiShip = 15000;
-  else if (totalQty === 6 || totalQty === 7) phiShip = 17000; 
+  let phiShip = 12000;
+  if (totalQty <= 5) phiShip = 12000;
+  else if (totalQty === 6) phiShip = 14000;
+  else if (totalQty === 7) phiShip = 15000;
   else if (totalQty === 8) phiShip = 18000;
   else if (totalQty === 9) phiShip = 19000;
-  else if (totalQty === 10) phiShip = 20000;
+  else if (totalQty >= 10) phiShip = 20000;
 
   const isOverLimit = totalQty > 10;
   const orderTotal = cart.length > 0 ? Math.max(0, tongTienDoAn + phiShip) : 0;
   const orderId = "GN" + Math.floor(1000 + Math.random() * 9000); 
 
   const handleCheckout = async () => {
-    if (isOverLimit || !location) return; // Khóa nếu chưa có GPS
+    if (isOverLimit || !location) return; 
     if (!customerName || !customerPhone || !customerAddress) {
       alert("Cô/Chú điền giúp con thông tin nhận hàng nha!");
       return;
@@ -90,7 +111,7 @@ export default function CheckoutApp() {
       customer_phone: customerPhone,
       delivery_address: customerAddress,
       shipping_note: shippingNote,
-      gps_location: `${location.lat},${location.lng}`, // Lưu GPS vào database
+      gps_location: `${location.lat},${location.lng}`,
       items_summary: monAnText,
       total_amount: orderTotal,
       shipping_fee: phiShip, 
@@ -110,7 +131,13 @@ export default function CheckoutApp() {
     }
   };
 
-  if (cart.length === 0) return <div className="p-10 text-center font-bold text-gray-900">Chưa có món nào.</div>;
+  if (cart.length === 0) return (
+    <div className="min-h-screen bg-[#fcfaf1] flex flex-col items-center justify-center p-10 max-w-md mx-auto">
+      <Receipt size={64} className="text-gray-300 mb-4" />
+      <p className="text-center font-black text-gray-600 text-lg">Chưa có món nào trong giỏ.</p>
+      <button onClick={() => router.back()} className="mt-4 bg-orange-100 text-orange-600 font-bold px-6 py-3 rounded-xl active:scale-95">Quay lại Đặt món</button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#fcfaf1] pb-28 font-sans max-w-md mx-auto shadow-2xl relative">
@@ -120,13 +147,24 @@ export default function CheckoutApp() {
       </header>
 
       <div className="p-4 space-y-4">
+        
+        {/* CẢNH BÁO QUÁ SỐ LƯỢNG */}
+        {isOverLimit && (
+          <div className="bg-red-50 border-2 border-red-500 p-4 rounded-2xl flex gap-3 items-start animate-pulse shadow-sm">
+            <Info className="text-red-600 flex-shrink-0" />
+            <div>
+              <p className="font-black text-red-800">Vượt quá 10 món/đơn!</p>
+              <p className="text-xs text-red-700 mt-1 font-bold">Shipper chỉ chở tối đa 10 món để đảm bảo đồ ăn còn nóng. Vui lòng bấm dấu trừ để giảm món hoặc tách làm 2 đơn nhé!</p>
+            </div>
+          </div>
+        )}
+
         {/* YÊU CẦU ĐỊNH VỊ */}
         <div className={`p-5 rounded-[2rem] shadow-sm border-2 transition-all ${location ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
            <h2 className={`font-black text-lg mb-3 flex items-center gap-2 ${location ? 'text-green-800' : 'text-red-800'}`}>
              <Navigation size={20} className={isLocating ? "animate-spin" : ""} /> 
              {location ? 'Đã xác nhận vị trí' : 'Xác nhận vị trí (Bắt buộc)'}
            </h2>
-           
            {!location ? (
              <>
                <p className="text-xs text-red-600 font-bold mb-4">Để shipper giao chính xác, Vui lòng bật định vị GPS.</p>
@@ -146,90 +184,70 @@ export default function CheckoutApp() {
            )}
         </div>
 
-        {/* THÔNG TIN NHẬN HÀNG (ÉP MÀU CHỮ ĐEN - KHÔNG BỊ LỖI DARK MODE) */}
+        {/* THÔNG TIN NHẬN HÀNG */}
         <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-200 space-y-4">
           <h2 className="font-black text-gray-900 border-b border-gray-100 pb-3 text-lg flex items-center gap-2"><MapPin className="text-orange-600" size={20} /> Thông tin nhận hàng</h2>
           <div className="space-y-3">
-            
             <div className="relative">
               <User className="absolute left-3 top-3.5 text-gray-500" size={18} />
-              <input 
-                type="text" 
-                value={customerName} 
-                onChange={(e) => setCustomerName(e.target.value)} 
-                placeholder="Tên của Cô/Chú..." 
-                style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
-              />
+              <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Tên của Cô/Chú..." style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" />
             </div>
-            
             <div className="relative">
               <Phone className="absolute left-3 top-3.5 text-gray-500" size={18} />
-              <input 
-                type="tel" 
-                value={customerPhone} 
-                onChange={(e) => setCustomerPhone(e.target.value)} 
-                placeholder="Số điện thoại..." 
-                style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
-              />
+              <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Số điện thoại..." style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" />
             </div>
-            
             <div className="relative">
               <MapPin className="absolute left-3 top-3.5 text-gray-500" size={18} />
-              <input 
-                type="text" 
-                value={customerAddress} 
-                onChange={(e) => setCustomerAddress(e.target.value)} 
-                placeholder="Huyện/Xã/Thôn..." 
-                style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
-              />
+              <input type="text" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} placeholder="Huyện/Xã/Thôn..." style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" />
             </div>
-            
             <div className="p-3 rounded-2xl border border-orange-200" style={{ backgroundColor: '#fff7ed' }}>
-               <div className="flex items-center gap-2 mb-2">
-                 <Info size={16} className="text-orange-600"/>
-                 <p className="text-[11px] font-black text-orange-800 uppercase">Chỉ đường cho Shipper</p>
-               </div>
-               <textarea 
-                  value={shippingNote} 
-                  onChange={(e) => setShippingNote(e.target.value)} 
-                  placeholder="Ví dụ: Nhà cửa màu xanh lá, đối diện cây đa..." 
-                  style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                  className="w-full p-3 border border-orange-300 rounded-xl outline-orange-600 h-24 resize-none text-sm font-bold placeholder:text-gray-400"
-               ></textarea>
+               <div className="flex items-center gap-2 mb-2"><Info size={16} className="text-orange-600"/><p className="text-[11px] font-black text-orange-800 uppercase">Chỉ đường cho Shipper</p></div>
+               <textarea value={shippingNote} onChange={(e) => setShippingNote(e.target.value)} placeholder="Ví dụ: Nhà cửa màu xanh lá, đối diện cây đa..." style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full p-3 border border-orange-300 rounded-xl outline-orange-600 h-24 resize-none text-sm font-bold placeholder:text-gray-400"></textarea>
             </div>
-
           </div>
         </div>
 
-        {/* GIỎ HÀNG */}
+        {/* GIỎ HÀNG CÓ THÊM NÚT SỬA SỐ LƯỢNG */}
         <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-200">
           <h2 className="font-black text-gray-900 mb-4 border-b border-gray-100 pb-3 text-lg flex items-center gap-2">
             <Receipt className="text-gray-900" size={20} /> Giỏ hàng ({totalQty} món)
           </h2>
           <div className="space-y-4 mb-4">
             {cart.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                <div className="pr-4">
-                  <h3 className="font-bold text-gray-900 text-sm flex items-start gap-2">
-                    <span className="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded text-xs">{item.soLuong}x</span> {item.tenMon}
-                  </h3>
-                  <p className="text-[10px] text-gray-600 mt-1">Từ: {item.tenQuan}</p>
-                  {item.ghiChu && <p className="text-[11px] text-orange-700 bg-orange-50 p-1.5 rounded-lg mt-1.5 font-bold italic inline-block">Lưu ý: {item.ghiChu}</p>}
+              <div key={idx} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="pr-4">
+                    <h3 className="font-bold text-gray-900 text-sm flex items-start gap-2">
+                      <span className="bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded text-xs">{item.soLuong}x</span> {item.tenMon}
+                    </h3>
+                    <p className="text-[10px] text-gray-500 mt-1">Từ: {item.tenQuan}</p>
+                    {item.ghiChu && <p className="text-[11px] text-orange-700 bg-orange-50 p-1.5 rounded-lg mt-1.5 font-bold italic inline-block">Lưu ý: {item.ghiChu}</p>}
+                  </div>
+                  <p className="font-black text-gray-900 text-sm">{(item.gia * item.soLuong).toLocaleString('vi-VN')}đ</p>
                 </div>
-                <p className="font-black text-gray-900 text-sm">{(item.gia * item.soLuong).toLocaleString('vi-VN')}đ</p>
+                
+                {/* THANH ĐIỀU CHỈNH SỐ LƯỢNG NẰM DƯỚI MỖI MÓN */}
+                <div className="flex items-center justify-end gap-2 mt-2">
+                  <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                    <button onClick={() => updateQuantity(idx, -1)} className="p-1.5 bg-white rounded-md shadow-sm active:scale-95 text-gray-600 hover:text-red-500 transition-colors"><Minus size={14} /></button>
+                    <span className="w-8 text-center font-black text-sm text-gray-900">{item.soLuong}</span>
+                    <button onClick={() => updateQuantity(idx, 1)} className="p-1.5 bg-white rounded-md shadow-sm active:scale-95 text-gray-600 hover:text-green-600 transition-colors"><Plus size={14} /></button>
+                  </div>
+                  <button onClick={() => removeItem(idx)} className="p-2.5 bg-red-50 text-red-500 rounded-lg active:scale-95 hover:bg-red-100 transition-colors ml-2">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
+          
           <div className="flex justify-between text-gray-800 my-2 text-sm font-bold border-t border-dashed border-gray-200 pt-4">
             <span>Tiền đồ ăn</span>
             <span>{tongTienDoAn.toLocaleString('vi-VN')}đ</span>
           </div>
           <div className="flex justify-between text-gray-900 my-2 text-sm font-black">
             <span>Phí giao nóng</span>
-            <span>{phiShip.toLocaleString('vi-VN')}đ</span>
+            <span className={isOverLimit ? "text-red-500" : ""}>{phiShip.toLocaleString('vi-VN')}đ</span>
           </div>
           <div className="flex justify-between text-xl font-black text-orange-600 mt-4 border-t border-gray-200 pt-4">
             <span>Tổng cộng</span>
@@ -275,7 +293,7 @@ export default function CheckoutApp() {
           disabled={isSubmitting || isOverLimit || !location} 
           className={`w-full text-white font-black text-lg py-4 rounded-2xl flex justify-center items-center gap-2 transition-all ${(!location || isOverLimit) ? 'bg-gray-500' : 'bg-orange-600 active:scale-95 shadow-lg'}`}
         >
-          {isSubmitting ? <Loader2 className="animate-spin" /> : (!location ? 'CHƯA CÓ VỊ TRÍ GPS' : (isOverLimit ? 'VƯỢT QUÁ SỐ LƯỢNG' : 'CHỐT ĐƠN NGAY'))}
+          {isSubmitting ? <Loader2 className="animate-spin" /> : (!location ? 'CHƯA CÓ VỊ TRÍ GPS' : (isOverLimit ? 'VƯỢT QUÁ 10 MÓN - HÃY TÁCH ĐƠN' : 'CHỐT ĐƠN NGAY'))}
         </button>
       </div>
     </div>
