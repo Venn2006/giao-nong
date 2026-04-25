@@ -27,19 +27,23 @@ export default function DoAnMenu() {
   const [toastMsg, setToastMsg] = useState("");
 
   const getCategoryImage = (cat: string) => {
-    if (cat === "Bún & Phở") return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/bun-rieu.jpg";
-    if (cat === "Cơm & Xôi") return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/com-tam.webp";
-    if (cat === "Bánh Mì") return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/banh-mi.jpg"; 
-    if (cat === "Cháo & Lẩu") return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/chao-lau.jpg"; 
-    if (cat === "Ăn Vặt") return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/an-vat.jpg"; 
+    if (!cat) return "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=500&q=80";
+    const lowerCat = cat.toLowerCase();
+    if (lowerCat.includes("bún") || lowerCat.includes("phở") || lowerCat.includes("lèo") || lowerCat.includes("riêu")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/bun-rieu.jpg";
+    if (lowerCat.includes("cơm") || lowerCat.includes("xôi")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/com-tam.webp";
+    if (lowerCat.includes("bánh mì")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/banh-mi.jpg"; 
+    if (lowerCat.includes("cháo") || lowerCat.includes("lẩu")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/chao-lau.jpg"; 
+    if (lowerCat.includes("ăn vặt")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/an-vat.jpg"; 
+    if (lowerCat.includes("uống") || lowerCat.includes("nước")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/nuoc-sam.jpg"; // Placeholder nếu có
     return "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=500&q=80";
   };
 
-  const getDanhSachQuan = (tenMon: string) => {
+  const getDanhSachQuan = (tenMon: string, originalPrice: number) => {
+    // Nếu có quán cụ thể thì load từ DB, còn ko thì tao mock up tạm để mày chọn
     return [
-      { id: 1, ten: `Quán Phượng - ${tenMon}`, diaChi: "Phường 5, Cà Mau", gia: 45000, sao: 4.8, khoangCach: "1.2 km", thoiGian: "15 phút", hinh: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=500&q=80" },
-      { id: 2, ten: `Tiệm Cô Ba`, diaChi: "Chợ Phường 8", gia: 35000, sao: 4.5, khoangCach: "2.5 km", thoiGian: "25 phút", hinh: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=500&q=80" },
-      { id: 3, ten: `Đặc Sản Gia Truyền`, diaChi: "Ngã 3 Chà Là", gia: 50000, sao: 4.9, khoangCach: "0.8 km", thoiGian: "10 phút", hinh: "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=500&q=80" },
+      { id: 1, ten: `Giao Nóng Đề Xuất`, diaChi: "Khu vực P5/P8, Cà Mau", gia: originalPrice, sao: 4.9, khoangCach: "Đang tính", thoiGian: "15-20 phút", hinh: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=500&q=80" },
+      { id: 2, ten: `Tiệm Cô Ba`, diaChi: "Chợ Phường 8", gia: originalPrice, sao: 4.5, khoangCach: "2.5 km", thoiGian: "25 phút", hinh: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=500&q=80" },
+      { id: 3, ten: `Quán Phượng`, diaChi: "Phường 5, Cà Mau", gia: originalPrice + 5000, sao: 4.8, khoangCach: "1.2 km", thoiGian: "15 phút", hinh: "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=500&q=80" },
     ];
   };
 
@@ -49,15 +53,44 @@ export default function DoAnMenu() {
 
     const fetchMenu = async () => {
       setIsLoading(true);
-      const { data } = await supabase.from('menu_items').select('*');
-      if (data) {
+      // MÚT DỮ LIỆU TỪ BẢNG menu_items (Chỉ lấy food và đang active)
+      const { data } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('is_active', true)
+        .eq('type', 'food');
+
+      if (data && data.length > 0) {
         setMenuItems(data);
+        
+        // Tự động gom nhóm danh mục (Category)
         const categoriesMap = new Map();
         data.forEach(item => {
-          if (!categoriesMap.has(item.category)) { categoriesMap.set(item.category, { id: item.category, ten: item.category, hinh: getCategoryImage(item.category), soMon: 0 }); }
-          categoriesMap.get(item.category).soMon += 1;
+          const catName = item.category || "Món Nổi Bật";
+          if (!categoriesMap.has(catName)) { 
+            categoriesMap.set(catName, { 
+              id: catName, 
+              ten: catName, 
+              hinh: getCategoryImage(catName), 
+              soMon: 0 
+            }); 
+          }
+          categoriesMap.get(catName).soMon += 1;
         });
         setDanhMuc(Array.from(categoriesMap.values()));
+      } else {
+        // NẾU DATABASE TRỐNG (Chưa nhập ở Admin) => Vẫn hiện MOCK DATA Bún Cây Xoài cho đỡ trống
+        const mockData = [
+          { id: '1', name: 'Bún Lèo Bình Thường', price: 35000, category: 'Bún Nước Lèo (Bún Mắm)' },
+          { id: '2', name: 'Bún Lèo Đặc Biệt', price: 50000, category: 'Bún Nước Lèo (Bún Mắm)' },
+          { id: '3', name: 'Bún Riêu Giò Chả', price: 35000, category: 'Bún Riêu Cua Đồng' },
+          { id: '4', name: 'Bún Riêu Đặc Biệt', price: 50000, category: 'Bún Riêu Cua Đồng' }
+        ];
+        setMenuItems(mockData);
+        setDanhMuc([
+          { id: 'Bún Nước Lèo (Bún Mắm)', ten: 'Bún Nước Lèo (Bún Mắm)', hinh: getCategoryImage('Bún'), soMon: 2 },
+          { id: 'Bún Riêu Cua Đồng', ten: 'Bún Riêu Cua Đồng', hinh: getCategoryImage('Bún'), soMon: 2 }
+        ]);
       }
       setIsLoading(false);
     };
@@ -70,7 +103,14 @@ export default function DoAnMenu() {
   };
 
   const handleAddToCart = () => {
-    const newItem = { id: Math.random().toString(), tenMon: monDangChon.name, tenQuan: quanDangChon.ten, gia: quanDangChon.gia, soLuong: soLuong, ghiChu: ghiChuMon };
+    const newItem = { 
+      id: Math.random().toString(), 
+      tenMon: monDangChon.name, 
+      tenQuan: quanDangChon.ten, 
+      gia: quanDangChon.gia, 
+      soLuong: soLuong, 
+      ghiChu: ghiChuMon 
+    };
     const updatedCart = [...cart, newItem];
     setCart(updatedCart);
     localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart)); 
@@ -81,7 +121,14 @@ export default function DoAnMenu() {
 
   const handleAddCustomToCart = () => {
     if (!customQuan) { alert("Điền tên quán giúp Giao Nóng nha!"); return; }
-    const newItem = { id: Math.random().toString(), tenMon: monDangChon.name, tenQuan: customQuan + (customAddress ? ` (${customAddress})` : ''), gia: 35000, soLuong: soLuong, ghiChu: `[MUA HỘ QUÁN NGOÀI] ${ghiChuMon}` };
+    const newItem = { 
+      id: Math.random().toString(), 
+      tenMon: monDangChon.name, 
+      tenQuan: customQuan + (customAddress ? ` (${customAddress})` : ''), 
+      gia: monDangChon.price, 
+      soLuong: soLuong, 
+      ghiChu: `[MUA HỘ QUÁN NGOÀI] ${ghiChuMon}` 
+    };
     const updatedCart = [...cart, newItem];
     setCart(updatedCart);
     localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart));
@@ -128,7 +175,7 @@ export default function DoAnMenu() {
         {/* 1. MÀN HÌNH CHỌN QUÁN (KHI ĐÃ BẤM VÀO MÓN) */}
         {monDangChon ? (
           <div className="space-y-5 animate-in slide-in-from-right-4">
-            {getDanhSachQuan(monDangChon.name).map((quan) => (
+            {getDanhSachQuan(monDangChon.name, monDangChon.price).map((quan) => (
               <div key={quan.id} onClick={() => { setQuanDangChon(quan); setSoLuong(1); setGhiChuMon(""); }} className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100 active:scale-[0.98] transition-transform cursor-pointer">
                 <div className="h-48 w-full relative">
                   <img src={quan.hinh} alt={quan.ten} className="w-full h-full object-cover" />
@@ -188,14 +235,16 @@ export default function DoAnMenu() {
             ))}
           </div>
         ) : (
-          /* 3. MÀN HÌNH DANH SÁCH MÓN TRONG DANH MỤC */
+          /* 3. MÀN HÌNH DANH SÁCH MÓN TRONG DANH MỤC (LẤY TỪ SUPABASE) */
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {menuItems.filter(item => item.category === activeCategory).map((mon) => (
+            {menuItems.filter(item => item.category === activeCategory || (!item.category && activeCategory === "Món Nổi Bật")).map((mon) => (
               <div key={mon.id} onClick={() => setMonDangChon(mon)} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex gap-4 active:bg-gray-50 cursor-pointer">
-                <div className="w-24 h-24 bg-gray-200 rounded-2xl flex-shrink-0 overflow-hidden"><img src={activeCategory ? getCategoryImage(activeCategory) : ""} alt={mon.name} className="w-full h-full object-cover opacity-80" /></div>
+                <div className="w-24 h-24 bg-gray-200 rounded-2xl flex-shrink-0 overflow-hidden">
+                  <img src={mon.image_url || getCategoryImage(activeCategory)} alt={mon.name} className="w-full h-full object-cover opacity-80" />
+                </div>
                 <div className="flex flex-col justify-between flex-grow py-1">
-                  <div><h3 className="text-base font-black text-gray-900 leading-tight mb-1">{mon.name}</h3><p className="text-[10px] text-gray-500 line-clamp-2">{mon.description}</p></div>
-                  <div className="flex justify-between items-end mt-2"><span className="font-black text-orange-600 text-sm">Từ 35.000đ</span><button className="bg-orange-50 text-orange-600 font-bold text-[10px] px-3 py-1.5 rounded-lg border border-orange-100 uppercase">Chọn quán</button></div>
+                  <div><h3 className="text-base font-black text-gray-900 leading-tight mb-1">{mon.name}</h3><p className="text-[10px] text-gray-500 line-clamp-2">{mon.description || "Giao Nóng Đề Xuất"}</p></div>
+                  <div className="flex justify-between items-end mt-2"><span className="font-black text-orange-600 text-sm">Từ {mon.price.toLocaleString('vi-VN')}đ</span><button className="bg-orange-50 text-orange-600 font-bold text-[10px] px-3 py-1.5 rounded-lg border border-orange-100 uppercase">Chọn quán</button></div>
                 </div>
               </div>
             ))}
