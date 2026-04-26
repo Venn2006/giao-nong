@@ -47,7 +47,7 @@ export default function OrderTracking() {
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
-  }, []);
+  }, [router]);
 
   const handleSendReview = async () => {
     if (!order) return;
@@ -78,7 +78,7 @@ export default function OrderTracking() {
 
   const getStep = () => {
     if (order.status === 'pending') return 1;
-    if (['assigned', 'cooking'].includes(order.status)) return 2;
+    if (['tx1_picking', 'at_midpoint', 'tx2_delivering', 'assigned', 'cooking'].includes(order.status)) return 2;
     if (order.status === 'completed') return 3;
     return 0; 
   };
@@ -87,8 +87,7 @@ export default function OrderTracking() {
   const displayShipperName = order.shipper_name || "Tài xế Giao Nóng";
   const displayShipperPhone = order.shipper_phone || "0901234567";
 
-  // CÔNG THỨC TÍNH ĐIỂM THƯỞNG CHUẨN CỦA MÀY
-  // 10k = 1 điểm. Cộng thêm 1 điểm do đã đánh giá.
+  // CÔNG THỨC TÍNH ĐIỂM THƯỞNG
   const diemMuaHang = Math.floor((order.total_amount || 0) / 10000);
   const diemDanhGia = 1;
   const tongDiemNhanDuoc = diemMuaHang + diemDanhGia;
@@ -142,7 +141,8 @@ export default function OrderTracking() {
 
       <div className="p-4 space-y-4 -mt-6">
         
-        {step >= 2 && (
+        {/* HIỂN THỊ TÀI XẾ NẾU ĐÃ CÓ NGƯỜI NHẬN */}
+        {step >= 2 && order.shipper_name && (
           <div className="bg-white p-5 rounded-[2rem] shadow-lg border border-gray-100 flex items-center justify-between animate-in slide-in-from-bottom-8">
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-black text-xl shadow-inner border-2 border-white">
@@ -162,9 +162,7 @@ export default function OrderTracking() {
           </div>
         )}
 
-        {/* ==================================================== */}
-        {/* KHU VỰC ĐÁNH GIÁ HOẶC THÔNG BÁO CẢM ƠN SAU KHI ĐÁNH GIÁ */}
-        {/* ==================================================== */}
+        {/* KHU VỰC ĐÁNH GIÁ (CHỈ HIỆN KHI ĐÃ GIAO XONG) */}
         {step === 3 && (
           <>
             {!isRated ? (
@@ -186,7 +184,7 @@ export default function OrderTracking() {
                   value={review}
                   onChange={(e) => setReview(e.target.value)}
                   placeholder="Góp ý món ăn hoặc khen ngợi Shipper..."
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm h-24 mb-4 outline-none focus:border-orange-500 resize-none"
+                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm h-24 mb-4 outline-none focus:border-orange-500 resize-none font-bold"
                 />
 
                 <button onClick={handleSendReview} disabled={isSending} className="w-full bg-orange-600 text-white font-black py-4 rounded-xl shadow-[0_8px_20px_rgba(234,88,12,0.3)] active:scale-[0.98] transition-all flex justify-center items-center gap-2">
@@ -194,7 +192,6 @@ export default function OrderTracking() {
                 </button>
               </div>
             ) : (
-              // MÀN HÌNH CẢM ƠN & TẶNG ĐIỂM THƯỞNG
               <div className="bg-green-50 p-6 rounded-[2rem] border-2 border-green-200 text-center shadow-lg animate-in zoom-in duration-500">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="text-green-500" size={32} />
@@ -221,6 +218,7 @@ export default function OrderTracking() {
           </>
         )}
 
+        {/* HÓA ĐƠN CHI TIẾT */}
         <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden mt-4 relative">
           <div className="h-4 w-full bg-[radial-gradient(circle,transparent_4px,#fff_4px)] bg-[length:12px_12px] absolute top-[-6px] left-0"></div>
           
@@ -230,19 +228,27 @@ export default function OrderTracking() {
               <h4 className="font-black text-gray-800 text-base">Hóa đơn chi tiết</h4>
             </div>
             
+            {/* FIX 1: THÊM whitespace-pre-line CHO BILL XUỐNG DÒNG MƯỢT MÀ */}
             <div className="bg-gray-50 p-4 rounded-2xl mb-4 border border-gray-100">
               <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Đồ ăn đã chọn</p>
-              <p className="font-bold text-gray-800 text-sm leading-relaxed">{order.items_summary}</p>
+              <p className="font-bold text-gray-800 text-sm leading-relaxed whitespace-pre-line">
+                {order.items_summary}
+              </p>
             </div>
 
+            {/* FIX 2: TÍNH TOÁN TRỪ PHÍ SHIP ĐỘNG THAY VÌ 15K CỨNG */}
             <div className="border-t border-dashed border-gray-200 pt-4 space-y-2 mb-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 text-sm font-medium">Tổng tiền món</span>
-                <span className="font-bold text-gray-800">{(order.total_amount - 15000).toLocaleString('vi-VN')}đ</span>
+                <span className="font-bold text-gray-800">
+                  {(order.total_amount - (order.shipping_fee || 0)).toLocaleString('vi-VN')}đ
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 text-sm font-medium">Phí giao hàng</span>
-                <span className="font-bold text-gray-800">15.000đ</span>
+                <span className="font-bold text-gray-800">
+                  {(order.shipping_fee || 0).toLocaleString('vi-VN')}đ
+                </span>
               </div>
             </div>
 
@@ -261,6 +267,7 @@ export default function OrderTracking() {
           </div>
         </div>
 
+        {/* ĐỊA CHỈ GIAO HÀNG */}
         <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Map size={18} className="text-gray-400" />
