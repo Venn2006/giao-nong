@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Plus, Minus, X, Star, ChevronRight, Store, Loader2, Clock, ShoppingCart, CheckCircle2, Utensils, CupSoda, Flame, Zap } from "lucide-react";
+import { ArrowLeft, MapPin, Plus, Minus, X, Star, ChevronRight, Store, Loader2, Clock, ShoppingCart, CheckCircle2, Utensils, CupSoda, Flame, Zap, Trash2, Banknote, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -29,6 +29,9 @@ export default function DoAnMenu() {
   const [userPhone, setUserPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // STATE THANH TOÁN
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank'>('cash');
 
   const schedules = [
     { id: 'sang', name: 'CA SÁNG', cutoff: '06:30', delivery: '07:00-08:00', cutoffHour: 6, cutoffMin: 30 },
@@ -38,7 +41,6 @@ export default function DoAnMenu() {
   ];
   const [timeLeft, setTimeLeft] = useState<{ active: any }>({ active: schedules[0] });
 
-  // BỘ TỪ ĐIỂN TỰ ĐỘNG PHÂN LOẠI ẢNH VÀ TAB
   const detectType = (cat: string) => {
     const lower = (cat || "").toLowerCase();
     if (lower.includes("trà") || lower.includes("cà phê") || lower.includes("uống") || lower.includes("nước") || lower.includes("sinh tố") || lower.includes("sữa")) return "drink";
@@ -47,13 +49,11 @@ export default function DoAnMenu() {
 
   const getCategoryImage = (cat: string, type: string) => {
     const lowerCat = (cat || "").toLowerCase();
-    // Đồ uống
     if (type === 'drink') {
-      if (lowerCat.includes("trà sữa")) return "https://images.unsplash.com/photo-1558850133-d8db1946ebde?auto=format&fit=crop&w=500&q=80"; // Trà sữa trân châu
-      if (lowerCat.includes("cà phê") || lowerCat.includes("cafe")) return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=500&q=80"; // Cà phê
-      return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/nuoc-sam.jpg"; // Default drink
+      if (lowerCat.includes("trà sữa")) return "https://images.unsplash.com/photo-1558850133-d8db1946ebde?auto=format&fit=crop&w=500&q=80"; 
+      if (lowerCat.includes("cà phê") || lowerCat.includes("cafe")) return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=500&q=80"; 
+      return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/nuoc-sam.jpg"; 
     }
-    // Đồ ăn
     if (lowerCat.includes("bún") || lowerCat.includes("phở") || lowerCat.includes("lèo")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/bun-rieu.jpg";
     if (lowerCat.includes("cơm") || lowerCat.includes("xôi")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/com-tam.webp";
     if (lowerCat.includes("bánh mì")) return "https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/banh-mi.jpg"; 
@@ -86,7 +86,7 @@ export default function DoAnMenu() {
             name: item['Tên món ăn'] || item.ten_mon_an || item.name,
             category: categoryName,
             description: item['Mô tả gợi ý'] || item.mo_ta_goi_y || item.description,
-            type: item.type || detectType(categoryName) // AUTO TÌM ĐỒ UỐNG NẾU FILE EXCEL THIẾU
+            type: item.type || detectType(categoryName)
           };
         }).filter(item => item.name); 
 
@@ -132,7 +132,7 @@ export default function DoAnMenu() {
     setMonDangChon(null); setQuanDangChon(null); setShowCustom(false);
     const firstCat = danhMuc.find(c => c.type === tab);
     if (firstCat) setActiveCategory(firstCat.id);
-    else setActiveCategory(null); // Clear nếu ko có danh mục
+    else setActiveCategory(null); 
   };
 
   const fetchRestaurantsForDish = async (dishName: string) => {
@@ -162,6 +162,13 @@ export default function DoAnMenu() {
     setCart(updatedCart); localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart));
     showSuccessToast(`Đã nhờ Shipper mua hộ`);
     setShowCustom(false); setMonDangChon(null); setGhiChuMon(""); setSoLuong(1); setCustomQuan(""); setCustomAddress("");
+  };
+
+  // NÚT XÓA TỪNG MÓN
+  const handleRemoveItem = (idToRemove: string) => {
+    const updatedCart = cart.filter(item => item.id !== idToRemove);
+    setCart(updatedCart);
+    localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart));
   };
 
   const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
@@ -196,8 +203,9 @@ export default function DoAnMenu() {
     const fullAddress = `📍 GIAO ĐẾN: ${deliveryAddress}`;
     const newOrder = {
       order_code: orderId, customer_name: userName, customer_phone: userPhone, delivery_address: fullAddress,
-      shipping_note: "Gom đơn theo ca. Tài xế ứng tiền mua trước.", items_summary: summary,
-      total_amount: cartTotal + serviceFee, shipping_fee: serviceFee, payment_method: 'cash', status: 'pending'
+      shipping_note: `Gom đơn theo ca. ${paymentMethod === 'bank' ? 'KHÁCH SẼ CHUYỂN KHOẢN' : 'THU TIỀN MẶT TẠI CHỖ'}`, 
+      items_summary: summary,
+      total_amount: cartTotal + serviceFee, shipping_fee: serviceFee, payment_method: paymentMethod, status: 'pending'
     };
     const { error } = await supabase.from('orders').insert([newOrder]);
     setIsSubmitting(false);
@@ -217,7 +225,7 @@ export default function DoAnMenu() {
   if (isLoading && danhMuc.length === 0) return <div className="min-h-screen bg-[#fcfaf1] flex justify-center items-center"><Loader2 className="animate-spin text-orange-500" size={40} /></div>;
 
   return (
-    <div className="min-h-screen bg-[#fcfaf1] pb-24 font-sans max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#fcfaf1] pb-[350px] font-sans max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
       
       {toastMsg && (
         <div className="fixed top-[80px] left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-6 py-3 rounded-full font-black text-sm z-50 animate-bounce shadow-2xl border border-gray-700">
@@ -242,7 +250,6 @@ export default function DoAnMenu() {
                <button onClick={() => handleSwitchTab('drink')} className={`flex-1 py-3 text-center flex items-center justify-center gap-1 font-black transition-colors ${mainTab === 'drink' ? 'text-orange-600 border-b-[3px] border-orange-600 bg-orange-50/50' : 'text-gray-400 border-b-[3px] border-transparent hover:bg-gray-50'}`}><CupSoda size={16}/> THỨC UỐNG</button>
             </div>
             
-            {/* TABS CATEGORY CHỈ HIỆN KHI CÓ DATA */}
             <div className="flex overflow-x-auto scrollbar-hide bg-gray-50/50 p-2 gap-2 min-h-[48px]">
                {danhMuc.filter(c => c.type === mainTab).map(cat => (
                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-black border-2 transition-all ${activeCategory === cat.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}>
@@ -314,14 +321,12 @@ export default function DoAnMenu() {
           </div>
         ) : (
           <>
-            {/* FEATURED SECTION - MÓN HOT GOM ĐƠN (ĐÃ FIX KHUNG ẢNH VÀ HIỂN THỊ) */}
             <div className="mb-6">
               <h2 className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-tight"><Flame size={18} className="text-red-500 fill-red-500"/> Chốt nhiều {timeLeft.active.name}</h2>
               <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
                 {monGoc.filter(m => m.type === mainTab).slice(0, 6).map(m => (
                   <div key={m.id} onClick={() => { setMonDangChon(m); fetchRestaurantsForDish(m.name); }} className="w-[140px] bg-white rounded-3xl p-2 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-all cursor-pointer">
                     <div className="h-[100px] bg-gray-100 rounded-[1.2rem] mb-2 overflow-hidden relative">
-                       {/* Lấy ảnh chuẩn từ hàm thay vì hardcode 1 link */}
                        <img src={getCategoryImage(m.category, mainTab)} className="w-full h-full object-cover" alt={m.name} />
                        <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase shadow-sm">Hot</span>
                     </div>
@@ -333,7 +338,6 @@ export default function DoAnMenu() {
               </div>
             </div>
 
-            {/* MAIN MENU */}
             <div className="space-y-4">
               <h2 className="text-sm font-black text-gray-900 uppercase tracking-tight flex items-center gap-2"><Utensils size={18} className="text-orange-500"/> Thực đơn chính</h2>
               {monGoc.filter(m => m.category === activeCategory && m.type === mainTab).map(m => (
@@ -386,25 +390,79 @@ export default function DoAnMenu() {
         </div>
       )}
 
-      {/* GIỎ HÀNG THÔNG MINH */}
+      {/* GIỎ HÀNG THÔNG MINH CHUYÊN NGHIỆP - UPDATE NÚT XÓA, HÓA ĐƠN VÀ THANH TOÁN */}
       {totalQty > 0 && !quanDangChon && !monDangChon && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-xl border-t border-gray-100 max-w-md mx-auto rounded-t-[2.5rem] z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.1)]">
-          <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-inner mb-4 max-h-[45vh] overflow-y-auto">
-             <div className="flex justify-between items-center mb-4 border-b border-gray-50 pb-3"><h3 className="font-black text-gray-900 uppercase text-xs flex items-center gap-2"><ShoppingCart size={16}/> Đơn của Cô/Chú ({totalQty})</h3><button onClick={() => setCart([])} className="text-red-500 text-[10px] font-black uppercase">Xóa hết</button></div>
+          <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-inner mb-4 max-h-[50vh] overflow-y-auto">
+             <div className="flex justify-between items-center mb-4 border-b border-gray-50 pb-3">
+               <h3 className="font-black text-gray-900 uppercase text-xs flex items-center gap-2"><ShoppingCart size={16}/> Đơn của Cô/Chú ({totalQty})</h3>
+               <button onClick={() => { setCart([]); localStorage.removeItem("giao_nong_cart"); }} className="text-red-500 text-[10px] font-black uppercase">Xóa hết</button>
+             </div>
+             
              <div className="space-y-4">
                {cart.map(i => (
-                 <div key={i.id} className="flex justify-between items-start"><div className="max-w-[70%]"><p className="font-black text-sm text-gray-900 leading-tight"><span className="text-orange-600">{i.soLuong}x</span> {i.tenMon}</p><p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Tại: {i.tenQuan}</p></div><p className="font-black text-sm text-gray-900">{(i.gia * i.soLuong).toLocaleString('vi-VN')}đ</p></div>
+                 <div key={i.id} className="flex justify-between items-start gap-2 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                   <div className="max-w-[65%]">
+                     <p className="font-black text-sm text-gray-900 leading-tight"><span className="text-orange-600">{i.soLuong}x</span> {i.tenMon}</p>
+                     <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Tại: {i.tenQuan}</p>
+                     {i.ghiChu && <p className="text-[10px] text-gray-500 italic mt-0.5">"{i.ghiChu}"</p>}
+                   </div>
+                   <div className="flex items-center gap-3">
+                     <p className="font-black text-sm text-gray-900">{(i.gia * i.soLuong).toLocaleString('vi-VN')}đ</p>
+                     <button onClick={() => handleRemoveItem(i.id)} className="text-red-400 p-1.5 bg-red-50 rounded-lg active:scale-95 transition-transform hover:bg-red-100">
+                       <Trash2 size={16} />
+                     </button>
+                   </div>
+                 </div>
                ))}
              </div>
-             <div className="mt-6 pt-5 border-t border-dashed border-gray-200 space-y-3">
+
+             {/* HÓA ĐƠN BÓC TÁCH CHUYÊN NGHIỆP */}
+             <div className="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-2 mb-4">
+               <div className="flex justify-between items-center">
+                 <span className="text-gray-500 text-xs font-bold">Tổng tiền món</span>
+                 <span className="font-black text-gray-800 text-sm">{cartTotal.toLocaleString('vi-VN')}đ</span>
+               </div>
+               <div className="flex justify-between items-center">
+                 <span className="text-gray-500 text-xs font-bold">Phí giao hàng (Gom chuyến)</span>
+                 <span className="font-black text-orange-600 text-sm">{serviceFee.toLocaleString('vi-VN')}đ</span>
+               </div>
+             </div>
+
+             <div className="mt-2 pt-5 border-t border-gray-100 space-y-3">
                 <input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="Tên Cô/Chú" className="w-full p-3 border border-gray-100 rounded-xl text-sm font-black bg-gray-50 outline-none focus:border-orange-500" />
                 <input type="tel" value={userPhone} onChange={e => setUserPhone(e.target.value)} placeholder="SĐT liên hệ" className="w-full p-3 border border-gray-100 rounded-xl text-sm font-black bg-gray-50 outline-none focus:border-orange-500" />
                 <input type="text" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Địa chỉ giao: Số nhà, tên đường..." className="w-full p-3 border border-gray-100 rounded-xl text-sm font-black bg-gray-50 outline-none focus:border-orange-500" />
              </div>
+
+             {/* CHỌN PHƯƠNG THỨC THANH TOÁN */}
+             <div className="mt-5">
+                <p className="text-[10px] text-gray-500 font-bold uppercase mb-2">Phương thức thanh toán</p>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setPaymentMethod('cash')} 
+                    className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'cash' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-100 text-gray-400'}`}
+                  >
+                    <Banknote size={16}/> Tiền mặt
+                  </button>
+                  <button 
+                    onClick={() => setPaymentMethod('bank')} 
+                    className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'bank' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-100 text-gray-400'}`}
+                  >
+                    <CreditCard size={16}/> Chuyển khoản
+                  </button>
+                </div>
+             </div>
           </div>
+
           <button onClick={handleCreateOrder} disabled={isSubmitting} className="w-full bg-gray-900 text-white p-5 rounded-[2rem] shadow-2xl flex justify-between items-center active:scale-95 transition-all">
-            <div className="text-left leading-none"><p className="text-[9px] font-black text-gray-400 uppercase mb-1">Ship {serviceFee/1000}k | Tổng</p><p className="text-2xl font-black text-orange-500">{(cartTotal + serviceFee).toLocaleString('vi-VN')}đ</p></div>
-            <div className="bg-orange-600 px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg flex items-center gap-2">{isSubmitting ? <Loader2 className="animate-spin" size={16}/> : 'Chốt Đơn'} <ChevronRight size={16}/></div>
+            <div className="text-left leading-none">
+              <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Cần thanh toán</p>
+              <p className="text-2xl font-black text-orange-500">{(cartTotal + serviceFee).toLocaleString('vi-VN')}đ</p>
+            </div>
+            <div className="bg-orange-600 px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg flex items-center gap-2">
+              {isSubmitting ? <Loader2 className="animate-spin" size={16}/> : 'Chốt Đơn'} <ChevronRight size={16}/>
+            </div>
           </button>
         </div>
       )}
