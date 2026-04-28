@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Plus, Minus, X, Star, ChevronRight, Store, Loader2, Clock, ShoppingCart, CheckCircle2, Utensils, CupSoda, Flame, Zap, Trash2, Banknote, CreditCard } from "lucide-react";
+import { ArrowLeft, MapPin, Plus, Minus, X, Star, ChevronRight, Store, Loader2, Clock, ShoppingCart, CheckCircle2, Utensils, CupSoda, Flame, Zap, Trash2, Banknote, CreditCard, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -30,7 +30,6 @@ export default function DoAnMenu() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // STATE THANH TOÁN
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank'>('cash');
 
   const schedules = [
@@ -164,7 +163,6 @@ export default function DoAnMenu() {
     setShowCustom(false); setMonDangChon(null); setGhiChuMon(""); setSoLuong(1); setCustomQuan(""); setCustomAddress("");
   };
 
-  // NÚT XÓA TỪNG MÓN
   const handleRemoveItem = (idToRemove: string) => {
     const updatedCart = cart.filter(item => item.id !== idToRemove);
     setCart(updatedCart);
@@ -174,18 +172,23 @@ export default function DoAnMenu() {
   const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
   const cartTotal = cart.reduce((sum, item) => sum + (item.gia * item.soLuong), 0);
 
+  // FIX BẢNG GIÁ SHIP CHUẨN CỦA SẾP
   const getServiceFee = (qty: number) => {
     if (qty === 0) return 0;
-    if (qty >= 1 && qty <= 3) return 12000;
-    if (qty === 4) return 13000;
+    if (qty <= 3) return 12000;
+    if (qty === 4) return 14000;
     if (qty === 5) return 15000;
     if (qty === 6) return 16000;
     if (qty === 7) return 17000;
     if (qty === 8) return 18000;
     if (qty === 9) return 19000;
-    return 20000;
+    return 20000; // Tối đa 10 món trở lên
   };
   const serviceFee = getServiceFee(totalQty);
+
+  // TÍCH ĐIỂM: 1k = 1 điểm (100k = 100 điểm = 1000đ)
+  const diemTichLuy = Math.floor((cartTotal + serviceFee) / 1000); 
+  const tienDoiDuoc = diemTichLuy * 10;
 
   const handleCreateOrder = async () => {
     if (cart.length === 0) return alert("Giỏ hàng trống!");
@@ -201,12 +204,21 @@ export default function DoAnMenu() {
     }).join("\n\n");
     const summary = `🍲 [ĐỒ ĂN - ${timeLeft.active.name}]\n\n${orderDetails}`;
     const fullAddress = `📍 GIAO ĐẾN: ${deliveryAddress}`;
+    
     const newOrder = {
-      order_code: orderId, customer_name: userName, customer_phone: userPhone, delivery_address: fullAddress,
+      order_code: orderId, 
+      customer_name: userName, 
+      customer_phone: userPhone, 
+      delivery_address: fullAddress,
+      gps_location: deliveryAddress, // FIX LOGIC: LƯU ĐỊA CHỈ ĐỂ TÀI XẾ MỞ GOOGLE MAPS
       shipping_note: `Gom đơn theo ca. ${paymentMethod === 'bank' ? 'KHÁCH SẼ CHUYỂN KHOẢN' : 'THU TIỀN MẶT TẠI CHỖ'}`, 
       items_summary: summary,
-      total_amount: cartTotal + serviceFee, shipping_fee: serviceFee, payment_method: paymentMethod, status: 'pending'
+      total_amount: cartTotal + serviceFee, 
+      shipping_fee: serviceFee, 
+      payment_method: paymentMethod, 
+      status: 'pending'
     };
+
     const { error } = await supabase.from('orders').insert([newOrder]);
     setIsSubmitting(false);
     if (error) alert("Lỗi mạng!"); 
@@ -225,7 +237,7 @@ export default function DoAnMenu() {
   if (isLoading && danhMuc.length === 0) return <div className="min-h-screen bg-[#fcfaf1] flex justify-center items-center"><Loader2 className="animate-spin text-orange-500" size={40} /></div>;
 
   return (
-    <div className="min-h-screen bg-[#fcfaf1] pb-[350px] font-sans max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#fcfaf1] pb-[380px] font-sans max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
       
       {toastMsg && (
         <div className="fixed top-[80px] left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-6 py-3 rounded-full font-black text-sm z-50 animate-bounce shadow-2xl border border-gray-700">
@@ -236,7 +248,7 @@ export default function DoAnMenu() {
       {/* HEADER */}
       <div className="sticky top-0 z-20 bg-white shadow-sm">
         <div className="p-4 flex items-center gap-3">
-          <button onClick={handleBack} className="p-2 rounded-full bg-gray-100 active:scale-95"><ArrowLeft size={20}/></button>
+          <button onClick={handleBack} className="p-2 rounded-full bg-gray-100 active:scale-95"><ArrowLeft size={20} className="text-gray-900"/></button>
           <div>
             <h1 className="text-xl font-black text-gray-900 leading-tight">{monDangChon ? monDangChon.name : "GIAO NÓNG MENU"}</h1>
             <p className="text-[10px] text-orange-600 font-black uppercase flex items-center gap-1"><Zap size={10} fill="currentColor"/> Chốt {timeLeft.active.name} trước {timeLeft.active.cutoff}</p>
@@ -252,12 +264,12 @@ export default function DoAnMenu() {
             
             <div className="flex overflow-x-auto scrollbar-hide bg-gray-50/50 p-2 gap-2 min-h-[48px]">
                {danhMuc.filter(c => c.type === mainTab).map(cat => (
-                 <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-black border-2 transition-all ${activeCategory === cat.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}>
+                 <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-black border-2 transition-all ${activeCategory === cat.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200'}`}>
                    {cat.ten}
                  </button>
                ))}
                {danhMuc.filter(c => c.type === mainTab).length === 0 && (
-                 <p className="text-xs text-gray-400 font-bold p-2 italic">Chưa có danh mục nào...</p>
+                 <p className="text-xs text-gray-500 font-bold p-2 italic">Chưa có danh mục nào...</p>
                )}
             </div>
           </>
@@ -268,7 +280,7 @@ export default function DoAnMenu() {
         {monDangChon ? (
           // MÀN HÌNH 2: CHỌN QUÁN
           <div className="space-y-4 animate-in slide-in-from-right-4">
-            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest px-1">Danh sách quán đang bán</h2>
+            <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest px-1">Danh sách quán đang bán</h2>
             {isLoading ? <Loader2 className="animate-spin mx-auto text-orange-500 mt-10" size={32}/> : 
              quananList.length === 0 ? (
                <div className="text-center bg-white p-8 rounded-[2rem] border border-gray-200 shadow-sm">
@@ -308,12 +320,13 @@ export default function DoAnMenu() {
 
             {showCustom && (
               <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-lg space-y-4 animate-in fade-in slide-in-from-top-4">
-                 <input type="text" value={customQuan} onChange={(e) => setCustomQuan(e.target.value)} placeholder="Tên quán..." className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-blue-500 text-sm font-bold" />
-                 <input type="text" value={customAddress} onChange={(e) => setCustomAddress(e.target.value)} placeholder="Địa chỉ quán..." className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-blue-500 text-sm font-bold" />
-                 <textarea value={ghiChuMon} onChange={(e) => setGhiChuMon(e.target.value)} placeholder="Ghi chú (Không hành...)" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-blue-500 text-sm h-20 resize-none font-bold"></textarea>
+                 {/* FIX DARKMODE: Ép màu chữ ĐEN ở các thẻ Input / Textarea */}
+                 <input type="text" value={customQuan} onChange={(e) => setCustomQuan(e.target.value)} placeholder="Tên quán..." className="w-full p-3 bg-gray-50 border border-gray-300 rounded-xl outline-blue-500 text-sm font-black text-gray-900 placeholder-gray-400" />
+                 <input type="text" value={customAddress} onChange={(e) => setCustomAddress(e.target.value)} placeholder="Địa chỉ quán..." className="w-full p-3 bg-gray-50 border border-gray-300 rounded-xl outline-blue-500 text-sm font-black text-gray-900 placeholder-gray-400" />
+                 <textarea value={ghiChuMon} onChange={(e) => setGhiChuMon(e.target.value)} placeholder="Ghi chú (Không hành...)" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-300 outline-blue-500 text-sm h-20 resize-none font-black text-gray-900 placeholder-gray-400"></textarea>
                  <div className="flex justify-between items-center py-2 border-t border-gray-100 pt-4">
                     <span className="text-gray-900 font-bold text-sm">Số lượng</span>
-                    <div className="flex gap-3 bg-gray-50 p-1 rounded-xl border border-gray-200"><button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="p-2 bg-white rounded-lg"><Minus size={16} /></button><span className="font-black text-lg w-6 text-center">{soLuong}</span><button onClick={() => setSoLuong(soLuong + 1)} className="p-2 bg-white rounded-lg text-blue-600"><Plus size={16} /></button></div>
+                    <div className="flex gap-3 bg-gray-100 p-1 rounded-xl border border-gray-200"><button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="p-2 bg-white rounded-lg text-gray-900"><Minus size={16} /></button><span className="font-black text-lg w-6 text-center text-gray-900">{soLuong}</span><button onClick={() => setSoLuong(soLuong + 1)} className="p-2 bg-white rounded-lg text-blue-600"><Plus size={16} /></button></div>
                  </div>
                  <button onClick={handleAddCustomToCart} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl active:scale-95 shadow-md">NHỜ SHIPPER MUA HỘ</button>
               </div>
@@ -348,7 +361,7 @@ export default function DoAnMenu() {
                   <div className="flex flex-col justify-between flex-grow py-1">
                     <div>
                       <div className="flex items-center gap-2 mb-1"><h3 className="text-base font-black text-gray-900 leading-tight">{m.name}</h3><span className="text-[8px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-lg font-black uppercase">Gom đơn</span></div>
-                      <p className="text-[10px] text-gray-400 font-bold line-clamp-2 leading-relaxed">{m.description || "Giao Nóng đảm bảo đồ ăn luôn nóng sốt."}</p>
+                      <p className="text-[10px] text-gray-500 font-bold line-clamp-2 leading-relaxed">{m.description || "Giao Nóng đảm bảo đồ ăn luôn nóng sốt."}</p>
                     </div>
                     <div className="flex justify-between items-end mt-2">
                        <div className="flex items-center gap-1.5"><span className="bg-orange-50 text-orange-600 text-[9px] font-black px-2 py-1 rounded-lg border border-orange-100 uppercase">Xem quán</span></div>
@@ -358,7 +371,7 @@ export default function DoAnMenu() {
                 </div>
               ))}
               {monGoc.filter(m => m.category === activeCategory && m.type === mainTab).length === 0 && (
-                 <div className="text-center py-10 opacity-50"><Utensils size={40} className="mx-auto mb-2"/> <p className="font-bold">Chưa có món nào trong mục này...</p></div>
+                 <div className="text-center py-10 opacity-50"><Utensils size={40} className="mx-auto mb-2 text-gray-400"/> <p className="font-bold text-gray-500">Chưa có món nào trong mục này...</p></div>
               )}
             </div>
           </>
@@ -371,13 +384,16 @@ export default function DoAnMenu() {
           <div className="bg-white w-full max-w-md rounded-t-[3rem] p-8 slide-in-from-bottom-full duration-300 shadow-[0_-20px_50px_rgba(0,0,0,0.2)]">
             <div className="flex justify-between items-start mb-6 border-b border-gray-50 pb-5">
               <div><p className="text-xs text-orange-600 font-black uppercase mb-1 flex items-center gap-1"><Store size={14}/> {quanDangChon.restaurant_name}</p><h2 className="text-2xl font-black text-gray-900 leading-tight">{monDangChon.name}</h2></div>
-              <button onClick={() => setQuanDangChon(null)} className="p-2 bg-gray-100 rounded-full"><X size={20}/></button>
+              <button onClick={() => setQuanDangChon(null)} className="p-2 bg-gray-100 rounded-full text-gray-900"><X size={20}/></button>
             </div>
-            <textarea value={ghiChuMon} onChange={(e) => setGhiChuMon(e.target.value)} placeholder="Ghi chú cho quán (Vd: Ít cay, không hành...)" className="w-full p-4 rounded-2xl border border-gray-100 text-sm h-24 mb-6 bg-gray-50 font-bold outline-orange-500"></textarea>
+            
+            {/* FIX DARKMODE VỚI GHI CHÚ */}
+            <textarea value={ghiChuMon} onChange={(e) => setGhiChuMon(e.target.value)} placeholder="Ghi chú cho quán (Vd: Ít cay, không hành...)" className="w-full p-4 rounded-2xl border border-gray-200 text-sm h-24 mb-6 bg-white font-black text-gray-900 placeholder-gray-400 outline-orange-500"></textarea>
+            
             <div className="flex justify-between items-center mb-8">
               <span className="text-gray-900 font-black text-lg uppercase tracking-tight">Số lượng</span>
               <div className="flex gap-5 bg-gray-100 p-2 rounded-2xl border border-gray-200">
-                <button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-400"><Minus size={18}/></button>
+                <button onClick={() => soLuong > 1 && setSoLuong(soLuong - 1)} className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-900"><Minus size={18}/></button>
                 <span className="font-black text-2xl w-8 text-center text-gray-900">{soLuong}</span>
                 <button onClick={() => setSoLuong(soLuong + 1)} className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-orange-600"><Plus size={18}/></button>
               </div>
@@ -390,13 +406,13 @@ export default function DoAnMenu() {
         </div>
       )}
 
-      {/* GIỎ HÀNG THÔNG MINH CHUYÊN NGHIỆP - UPDATE NÚT XÓA, HÓA ĐƠN VÀ THANH TOÁN */}
+      {/* GIỎ HÀNG THÔNG MINH CHUYÊN NGHIỆP */}
       {totalQty > 0 && !quanDangChon && !monDangChon && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-xl border-t border-gray-100 max-w-md mx-auto rounded-t-[2.5rem] z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.1)]">
-          <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-inner mb-4 max-h-[50vh] overflow-y-auto">
-             <div className="flex justify-between items-center mb-4 border-b border-gray-50 pb-3">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-xl border-t border-gray-200 max-w-md mx-auto rounded-t-[2.5rem] z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.1)]">
+          <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm mb-4 max-h-[55vh] overflow-y-auto">
+             <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                <h3 className="font-black text-gray-900 uppercase text-xs flex items-center gap-2"><ShoppingCart size={16}/> Đơn của Cô/Chú ({totalQty})</h3>
-               <button onClick={() => { setCart([]); localStorage.removeItem("giao_nong_cart"); }} className="text-red-500 text-[10px] font-black uppercase">Xóa hết</button>
+               <button onClick={() => { setCart([]); localStorage.removeItem("giao_nong_cart"); }} className="text-red-500 text-[10px] font-black uppercase bg-red-50 px-2 py-1 rounded-lg">Xóa hết</button>
              </div>
              
              <div className="space-y-4">
@@ -404,8 +420,8 @@ export default function DoAnMenu() {
                  <div key={i.id} className="flex justify-between items-start gap-2 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
                    <div className="max-w-[65%]">
                      <p className="font-black text-sm text-gray-900 leading-tight"><span className="text-orange-600">{i.soLuong}x</span> {i.tenMon}</p>
-                     <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Tại: {i.tenQuan}</p>
-                     {i.ghiChu && <p className="text-[10px] text-gray-500 italic mt-0.5">"{i.ghiChu}"</p>}
+                     <p className="text-[9px] text-gray-500 font-bold uppercase mt-1">Tại: {i.tenQuan}</p>
+                     {i.ghiChu && <p className="text-[10px] text-gray-600 italic mt-0.5">"{i.ghiChu}"</p>}
                    </div>
                    <div className="flex items-center gap-3">
                      <p className="font-black text-sm text-gray-900">{(i.gia * i.soLuong).toLocaleString('vi-VN')}đ</p>
@@ -417,37 +433,50 @@ export default function DoAnMenu() {
                ))}
              </div>
 
-             {/* HÓA ĐƠN BÓC TÁCH CHUYÊN NGHIỆP */}
+             {/* TÍCH ĐIỂM KHÁCH HÀNG UI */}
+             <div className="mt-5 bg-orange-50 p-3 rounded-xl border border-orange-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-orange-500 fill-orange-500" />
+                    <span className="text-[11px] font-black text-orange-900 uppercase">Tích lũy đơn này</span>
+                </div>
+                <div className="text-right">
+                    <span className="text-sm font-black text-orange-600">+{diemTichLuy} điểm</span>
+                    <p className="text-[9px] font-bold text-orange-500 uppercase mt-0.5">(Đổi được {tienDoiDuoc.toLocaleString('vi-VN')}đ)</p>
+                </div>
+             </div>
+
+             {/* HÓA ĐƠN BÓC TÁCH */}
              <div className="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-2 mb-4">
                <div className="flex justify-between items-center">
-                 <span className="text-gray-500 text-xs font-bold">Tổng tiền món</span>
-                 <span className="font-black text-gray-800 text-sm">{cartTotal.toLocaleString('vi-VN')}đ</span>
+                 <span className="text-gray-500 text-xs font-bold uppercase">Tổng tiền món</span>
+                 <span className="font-black text-gray-900 text-sm">{cartTotal.toLocaleString('vi-VN')}đ</span>
                </div>
                <div className="flex justify-between items-center">
-                 <span className="text-gray-500 text-xs font-bold">Phí giao hàng (Gom chuyến)</span>
+                 <span className="text-gray-500 text-xs font-bold uppercase">Phí gom chuyến</span>
                  <span className="font-black text-orange-600 text-sm">{serviceFee.toLocaleString('vi-VN')}đ</span>
                </div>
              </div>
 
+             {/* FIX DARKMODE CHO Ô NHẬP ĐỊA CHỈ */}
              <div className="mt-2 pt-5 border-t border-gray-100 space-y-3">
-                <input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="Tên Cô/Chú" className="w-full p-3 border border-gray-100 rounded-xl text-sm font-black bg-gray-50 outline-none focus:border-orange-500" />
-                <input type="tel" value={userPhone} onChange={e => setUserPhone(e.target.value)} placeholder="SĐT liên hệ" className="w-full p-3 border border-gray-100 rounded-xl text-sm font-black bg-gray-50 outline-none focus:border-orange-500" />
-                <input type="text" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Địa chỉ giao: Số nhà, tên đường..." className="w-full p-3 border border-gray-100 rounded-xl text-sm font-black bg-gray-50 outline-none focus:border-orange-500" />
+                <input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="Tên Cô/Chú" className="w-full p-3 border border-gray-300 rounded-xl text-sm font-black bg-white text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500" />
+                <input type="tel" value={userPhone} onChange={e => setUserPhone(e.target.value)} placeholder="SĐT liên hệ" className="w-full p-3 border border-gray-300 rounded-xl text-sm font-black bg-white text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500" />
+                <input type="text" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Địa chỉ giao: Số nhà, tên đường..." className="w-full p-3 border border-gray-300 rounded-xl text-sm font-black bg-white text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500" />
              </div>
 
              {/* CHỌN PHƯƠNG THỨC THANH TOÁN */}
              <div className="mt-5">
-                <p className="text-[10px] text-gray-500 font-bold uppercase mb-2">Phương thức thanh toán</p>
+                <p className="text-[10px] text-gray-500 font-bold uppercase mb-2">Thanh toán (Chọn 1)</p>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setPaymentMethod('cash')} 
-                    className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'cash' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-100 text-gray-400'}`}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'cash' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-200 text-gray-500'}`}
                   >
                     <Banknote size={16}/> Tiền mặt
                   </button>
                   <button 
                     onClick={() => setPaymentMethod('bank')} 
-                    className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'bank' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-100 text-gray-400'}`}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'bank' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}
                   >
                     <CreditCard size={16}/> Chuyển khoản
                   </button>
