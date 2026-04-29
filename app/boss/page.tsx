@@ -18,7 +18,9 @@ import {
   Car, 
   ShoppingBag,
   AlertTriangle,
-  Calendar
+  Calendar,
+  ShieldAlert,
+  ShieldCheck
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -79,6 +81,16 @@ export default function BossDashboard() {
     }
   };
 
+  // TÍNH NĂNG MỚI: DUYỆT ĐƠN CHUYỂN KHOẢN / CỌC
+  const handleApprove = async (id: string) => {
+    if (window.confirm('Boss xác nhận ĐÃ NHẬN TIỀN và Duyệt đơn này cho Shipper chạy?')) {
+      await supabase
+        .from('orders')
+        .update({ is_approved: true })
+        .eq('id', id);
+    }
+  };
+
   // NÃO THỜI GIAN
   const isWithinDateRange = (dateString: string, filter: string) => {
     if (!dateString) return false;
@@ -102,7 +114,7 @@ export default function BossDashboard() {
     return true; 
   };
 
-  // DANH SÁCH HIỂN THỊ (Kết hợp lọc thời gian + Đơn đang chạy)
+  // DANH SÁCH HIỂN THỊ
   const displayOrders = orders.filter(o => {
     const isActive = ['pending', 'tx1_picking', 'at_midpoint', 'tx2_delivering'].includes(o.status);
     if (dateFilter === 'today') {
@@ -110,6 +122,9 @@ export default function BossDashboard() {
     }
     return isWithinDateRange(o.created_at, dateFilter);
   });
+
+  // ĐẾM SỐ LƯỢNG ĐƠN CHỜ DUYỆT
+  const pendingApprovalCount = displayOrders.filter(o => o.is_approved === false && o.status === 'pending').length;
 
   // TÍNH TOÁN BÁO CÁO TÀI CHÍNH THEO BỘ LỌC
   const filteredOrders = orders.filter(o => isWithinDateRange(o.created_at, dateFilter));
@@ -233,6 +248,19 @@ export default function BossDashboard() {
           </div>
         </div>
 
+        {/* CẢNH BÁO ĐƠN CHỜ DUYỆT */}
+        {pendingApprovalCount > 0 && (
+          <div className="bg-red-50 border-2 border-red-500 rounded-2xl p-4 flex items-center justify-between shadow-lg animate-bounce">
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="text-red-600" size={24}/>
+              <div>
+                <p className="font-black text-red-700 text-sm uppercase">Cần Boss Duyệt Gấp!</p>
+                <p className="text-xs font-bold text-red-600/80">Có {pendingApprovalCount} đơn đang đợi check Bank/Cọc</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* BẢNG GIÁM SÁT ĐƠN HÀNG CHUYÊN NGHIỆP */}
         <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden">
            <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
@@ -247,11 +275,13 @@ export default function BossDashboard() {
                 const isPackage = summaryText.includes('GIAO HÀNG');
                 const isRide = summaryText.includes('ĐẶT XE');
                 const isErrand = summaryText.includes('MUA HỘ');
+                const isWaitingApprove = order.is_approved === false && order.status === 'pending';
                 
                 return (
                   <div 
                     key={order.id} 
                     className={`p-6 hover:bg-gray-50 transition-colors border-l-[6px] ${
+                      isWaitingApprove ? 'border-red-500 bg-red-50/30' :
                       isPackage ? 'border-blue-400' : 
                       isRide ? 'border-green-400' : 
                       isErrand ? 'border-purple-400' : 'border-orange-400'
@@ -265,23 +295,25 @@ export default function BossDashboard() {
                           </span>
                           
                           <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border-2 ${
-                            order.status === 'pending' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                            isWaitingApprove ? 'bg-red-600 text-white border-red-700 animate-pulse' :
+                            order.status === 'pending' ? 'bg-red-50 text-red-700 border-red-200' :
                             order.status === 'tx1_picking' ? 'bg-blue-50 text-blue-800 border-blue-200' :
                             order.status === 'at_midpoint' ? 'bg-purple-50 text-purple-800 border-purple-200' :
                             order.status === 'tx2_delivering' ? 'bg-orange-50 text-orange-800 border-orange-200' :
                             order.status === 'cancelled' ? 'bg-gray-100 text-gray-500 border-gray-200' :
                             'bg-green-50 text-green-800 border-green-200'
                           }`}>
-                            {order.status === 'pending' && '🔴 ĐỢI TÀI XẾ NHẬN ĐƠN'}
-                            {order.status === 'tx1_picking' && (isPackage ? '📦 ĐANG GOM KIỆN HÀNG' : isErrand ? '🛍️ ĐANG ĐI MUA HỘ' : '🛵 ĐANG MUA TẠI QUÁN')}
-                            {order.status === 'at_midpoint' && (
+                            {isWaitingApprove && '🚨 BOSS CẦN DUYỆT'}
+                            {!isWaitingApprove && order.status === 'pending' && '🔴 ĐỢI TÀI XẾ NHẬN ĐƠN'}
+                            {!isWaitingApprove && order.status === 'tx1_picking' && (isPackage ? '📦 ĐANG GOM KIỆN HÀNG' : isErrand ? '🛍️ ĐANG ĐI MUA HỘ' : '🛵 ĐANG MUA TẠI QUÁN')}
+                            {!isWaitingApprove && order.status === 'at_midpoint' && (
                               <span className="flex items-center gap-1">
-                                <AlertTriangle size={12}/> 📍 2 TÀI XẾ ĐANG Ở BỜ ĐẬP ĐỔI HÀNG
+                                <AlertTriangle size={12}/> 📍 2 TÀI XẾ ĐANG Ở BỜ ĐẬP
                               </span>
                             )}
-                            {order.status === 'tx2_delivering' && (isPackage ? '🚚 ĐANG CHỞ KIỆN ĐI GIAO' : isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG ĐI GIAO ĐẾN KHÁCH')}
-                            {order.status === 'cancelled' && '❌ ĐÃ HỦY'}
-                            {order.status === 'completed' && '✅ ĐÃ HOÀN TẤT'}
+                            {!isWaitingApprove && order.status === 'tx2_delivering' && (isPackage ? '🚚 ĐANG CHỞ KIỆN ĐI GIAO' : isRide ? '🚖 ĐANG CHỞ KHÁCH' : '🛵 ĐANG ĐI GIAO ĐẾN KHÁCH')}
+                            {!isWaitingApprove && order.status === 'cancelled' && '❌ ĐÃ HỦY'}
+                            {!isWaitingApprove && order.status === 'completed' && '✅ ĐÃ HOÀN TẤT'}
                           </span>
                         </div>
 
@@ -344,23 +376,37 @@ export default function BossDashboard() {
                           <p className="text-3xl font-black text-gray-900">
                             {order.total_amount?.toLocaleString('vi-VN')}đ
                           </p>
-                          <p className="text-[10px] font-black mt-2 px-3 py-1 rounded-lg uppercase tracking-wider inline-block text-white shadow-sm bg-gray-800">
-                            {order.payment_method === 'bank' ? '🏦 KHÁCH ĐÃ CK' : 
+                          <p className={`text-[10px] font-black mt-2 px-3 py-1 rounded-lg uppercase tracking-wider inline-block text-white shadow-sm ${isWaitingApprove ? 'bg-red-600 animate-pulse' : 'bg-gray-800'}`}>
+                            {order.payment_method === 'bank' ? '🏦 BANK / CỌC (CHECK KỸ)' : 
                              order.payment_method === 'cash_sender' ? '💵 THU NGƯỜI GỬI' : 
                              order.payment_method === 'cash_receiver' ? '💵 THU NGƯỜI NHẬN' : '💵 THU TIỀN MẶT'}
                           </p>
                         </div>
 
-                        <div className="w-full mt-8 space-y-3">
-                          {['pending', 'tx1_picking', 'at_midpoint'].includes(order.status) && (
-                            <button 
-                              onClick={() => updateStatus(order.id, 'cancelled')} 
-                              className="w-full mt-3 text-[11px] text-red-500 font-bold uppercase tracking-wider hover:underline text-center block border border-red-100 py-3 rounded-lg bg-red-50 active:scale-95"
-                            >
-                              Boss Hủy bỏ đơn hàng này
-                            </button>
-                          )}
-                        </div>
+                        {/* KIỂM TRA: NẾU CHƯA DUYỆT THÌ HIỆN NÚT DUYỆT, NẾU DUYỆT RỒI THÌ HIỆN NÚT HỦY */}
+                        {isWaitingApprove ? (
+                          <div className="w-full mt-4 p-3 bg-red-50 border-2 border-red-500 rounded-xl shadow-sm text-center">
+                             <p className="text-xs font-black text-red-600 mb-3 flex items-center justify-center gap-1"><ShieldCheck size={16}/> ĐƠN CHỜ BOSS DUYỆT</p>
+                             <button onClick={() => handleApprove(order.id)} className="w-full bg-green-600 text-white font-black py-4 rounded-lg active:scale-95 shadow-md mb-2 flex justify-center items-center gap-1">
+                               <CheckCircle2 size={18}/> ĐÃ NHẬN TIỀN - DUYỆT
+                             </button>
+                             <button onClick={() => updateStatus(order.id, 'cancelled')} className="w-full bg-red-100 text-red-600 font-black py-3 rounded-lg active:scale-95 border border-red-200">
+                               HỦY BỎ (BOM HÀNG)
+                             </button>
+                          </div>
+                        ) : (
+                          <div className="w-full mt-8 space-y-3">
+                            {['pending', 'tx1_picking', 'at_midpoint'].includes(order.status) && (
+                              <button 
+                                onClick={() => updateStatus(order.id, 'cancelled')} 
+                                className="w-full mt-3 text-[11px] text-red-500 font-bold uppercase tracking-wider hover:underline text-center block border border-red-100 py-3 rounded-lg bg-red-50 active:scale-95"
+                              >
+                                Boss Hủy bỏ đơn hàng này
+                              </button>
+                            )}
+                          </div>
+                        )}
+
                       </div>
 
                     </div>
