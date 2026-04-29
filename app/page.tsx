@@ -18,17 +18,23 @@ import {
   Star, 
   Clock, 
   ShoppingBag, 
-  Bell 
+  Bell,
+  Award,
+  Shield,
+  Crown,
+  Truck
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { supabase } from "../lib/supabase";
 
 export default function HomePage() {
   const router = useRouter();
   
   const [userName, setUserName] = useState("Khách Mới");
   const [userPhone, setUserPhone] = useState("Chưa cập nhật SĐT");
-  
+  const [totalSpent, setTotalSpent] = useState(0);
+  const [vipInfo, setVipInfo] = useState({ rank: 'Đồng', discount: 0, points: 0, next: 5000000, color: 'from-orange-400 to-orange-600', icon: Shield });
+
   const [showProfile, setShowProfile] = useState(false);
   const [tempName, setTempName] = useState("");
   const [tempPhone, setTempPhone] = useState("");
@@ -47,16 +53,53 @@ export default function HomePage() {
     seconds: 0
   });
 
+  // HÀM TÍNH RANK VIP CHUẨN LIÊN MINH CỦA SẾP
+  const calculateRank = (spent: number) => {
+    const points = Math.floor(spent / 100000); // 100k = 1 điểm
+    
+    if (spent >= 500000000) return { rank: 'Thách Đấu', discount: 20, points, next: null, color: 'from-red-600 to-orange-500', icon: Crown };
+    if (spent >= 200000000) return { rank: 'Đại Cao Thủ', discount: 18, points, next: 500000000, color: 'from-rose-500 to-pink-700', icon: Crown };
+    if (spent >= 120000000) return { rank: 'Cao Thủ', discount: 15, points, next: 200000000, color: 'from-purple-500 to-indigo-600', icon: Award };
+    if (spent >= 80000000) return { rank: 'Kim Cương', discount: 12, points, next: 120000000, color: 'from-blue-400 to-cyan-500', icon: Award };
+    if (spent >= 50000000) return { rank: 'Lục Bảo', discount: 9, points, next: 80000000, color: 'from-emerald-400 to-green-600', icon: Shield };
+    if (spent >= 30000000) return { rank: 'Bạch Kim', discount: 7, points, next: 50000000, color: 'from-slate-300 to-slate-500', icon: Shield };
+    if (spent >= 15000000) return { rank: 'Vàng', discount: 5, points, next: 30000000, color: 'from-yellow-400 to-amber-500', icon: Shield };
+    if (spent >= 5000000) return { rank: 'Bạc', discount: 2, points, next: 15000000, color: 'from-gray-300 to-gray-400', icon: Shield };
+    
+    return { rank: 'Đồng', discount: 0, points, next: 5000000, color: 'from-orange-500 to-orange-700', icon: Shield };
+  };
+
   useEffect(() => {
-    const savedUser = localStorage.getItem("giao_nong_user");
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      if (parsed.name) setUserName(parsed.name);
-      if (parsed.phone) setUserPhone(parsed.phone);
-      setTempName(parsed.name || "");
-      setTempPhone(parsed.phone || "");
-      setTempAddress(parsed.address || "");
-    }
+    const fetchUserData = async () => {
+      const savedUser = localStorage.getItem("giao_nong_user");
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.name) setUserName(parsed.name);
+        if (parsed.phone) setUserPhone(parsed.phone);
+        setTempName(parsed.name || "");
+        setTempPhone(parsed.phone || "");
+        setTempAddress(parsed.address || "");
+
+        // QUÉT TỔNG TIỀN ĐÃ MUA ĐỂ NÂNG RANK VIP
+        if (parsed.phone) {
+          const { data } = await supabase
+            .from('orders')
+            .select('total_amount')
+            .eq('customer_phone', parsed.phone)
+            .eq('status', 'completed');
+
+          if (data) {
+            const total = data.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+            setTotalSpent(total);
+            const vipData = calculateRank(total);
+            setVipInfo(vipData);
+            localStorage.setItem('giao_nong_vip', JSON.stringify({ discount: vipData.discount, rank: vipData.rank }));
+          }
+        }
+      }
+    };
+    
+    fetchUserData();
 
     const timer = setInterval(() => {
       const now = new Date();
@@ -102,168 +145,150 @@ export default function HomePage() {
     setUserName(tempName);
     setUserPhone(tempPhone);
     setShowProfile(false);
+    window.location.reload(); // Tải lại để tính Rank tức thì
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans pb-32 max-w-md mx-auto shadow-2xl relative">
+    <div className="min-h-screen bg-[#fcfaf1] font-sans pb-32 max-w-md mx-auto shadow-2xl relative">
       
-      {/* HEADER CÓ CHUÔNG THÔNG BÁO */}
+      {/* HEADER TÍCH HỢP LOGO GIAO NÓNG XỊN SÒ MÀU CAM */}
       <header className="bg-white p-4 sticky top-0 z-20 shadow-sm rounded-b-2xl flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-black text-orange-600 tracking-tight">GIAO NÓNG</h1>
-          <p className="text-[10px] font-bold text-gray-500 flex items-center gap-1 mt-0.5">
-            Cà Mau <ChevronRight size={10}/> Bờ Đập <ChevronRight size={10}/> Chà Là
-          </p>
+        <div className="flex items-center gap-2">
+          {/* LOGO GIAO NÓNG CUSTOM */}
+          <div className="bg-orange-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200 relative">
+             <Flame size={24} className="text-yellow-300 fill-yellow-300 absolute -top-1 -right-1"/>
+             <Truck size={22} className="text-white"/>
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tighter">GIAO <span className="text-orange-600">NÓNG</span></h1>
+            <p className="text-[10px] font-bold text-gray-500 flex items-center gap-1 mt-0.5">
+              Cà Mau <ChevronRight size={10}/> Bờ Đập <ChevronRight size={10}/> Chà Là
+            </p>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="bg-green-50 px-2 py-1.5 rounded-xl items-center gap-1.5 border border-green-100 hidden sm:flex">
-             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-             <span className="text-[10px] font-black text-green-700 uppercase">Đang nhận đơn</span>
-          </div>
-          
           {/* NÚT CHUÔNG LỊCH SỬ ĐƠN HÀNG */}
-          <button 
-            onClick={() => router.push('/don-hang')} 
-            className="relative bg-gray-100 p-2.5 rounded-full active:scale-95 transition-transform border border-gray-200"
-          >
-             <Bell size={20} className="text-gray-700" />
-             {/* Chấm đỏ Noti nhấp nháy */}
-             <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+          <button onClick={() => router.push('/don-hang')} className="relative bg-orange-50 p-2.5 rounded-xl active:scale-95 transition-transform border border-orange-100">
+             <Bell size={20} className="text-orange-600" />
+             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
           </button>
         </div>
       </header>
 
       <div className="p-4 space-y-6">
         
-        {/* MEMBERSHIP CARD */}
-        <div onClick={() => setShowProfile(true)} className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden cursor-pointer active:scale-95 transition-transform">
+        {/* MEMBERSHIP CARD (RANK VIP) */}
+        <div onClick={() => setShowProfile(true)} className={`bg-gradient-to-r ${vipInfo.color} rounded-[2rem] p-5 text-white shadow-xl relative overflow-hidden cursor-pointer active:scale-95 transition-transform border border-white/20`}>
            <div className="absolute -right-4 -bottom-4 opacity-10">
-             <Zap size={120} />
+             <vipInfo.icon size={120} />
            </div>
+           
            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div className="flex items-center gap-2">
-                 <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
-                   <User size={20} className="text-white"/>
+              <div className="flex items-center gap-3">
+                 <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm border border-white/30 shadow-inner">
+                   <User size={24} className="text-white"/>
                  </div>
-                 <span className="font-black text-xs uppercase tracking-wider bg-white/20 px-2 py-1 rounded">
-                   Bấm cập nhật hồ sơ
-                 </span>
-              </div>
-              <span className="bg-white/20 px-2 py-1 rounded text-[10px] font-black backdrop-blur-sm">Giảm 0%</span>
-           </div>
-           <div className="flex justify-between items-end relative z-10">
-              <div>
-                <h2 className="text-xl font-black uppercase">{userName}</h2>
-                <p className="text-xs font-medium opacity-90 mt-0.5">{userPhone}</p>
+                 <div>
+                   <span className="font-black text-[9px] uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded backdrop-blur-sm mb-1 inline-block">
+                     HẠNG {vipInfo.rank}
+                   </span>
+                   <h2 className="text-xl font-black uppercase leading-tight truncate max-w-[150px] drop-shadow-md">{userName}</h2>
+                   <p className="text-xs font-medium opacity-90 mt-0.5">{userPhone}</p>
+                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[9px] font-black opacity-80 uppercase tracking-wider mb-0.5">ĐIỂM TÍCH LŨY</p>
-                <p className="text-3xl font-black leading-none">0</p>
+                 <p className="text-[9px] font-bold uppercase opacity-80 mb-0.5">Đặc quyền</p>
+                 <div className="bg-white text-gray-900 font-black text-sm px-2 py-1 rounded-lg shadow-sm border border-gray-100">
+                   Giảm {vipInfo.discount}%
+                 </div>
               </div>
+           </div>
+           
+           <div className="flex justify-between items-end relative z-10 border-t border-white/20 pt-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase opacity-80 mb-0.5 flex items-center gap-1"><Zap size={10}/> Điểm tích lũy (1đ = 1k)</p>
+                <p className="text-3xl font-black drop-shadow-md leading-none">{vipInfo.points.toLocaleString('vi-VN')}</p>
+              </div>
+              {vipInfo.next && (
+                <div className="text-right max-w-[45%]">
+                  <p className="text-[9px] font-medium opacity-80 mb-1">Còn {(vipInfo.next - totalSpent).toLocaleString('vi-VN')}đ lên hạng</p>
+                  <div className="w-full bg-black/30 h-1.5 rounded-full overflow-hidden shadow-inner">
+                    <div className="bg-white h-full rounded-full" style={{ width: `${(totalSpent / vipInfo.next) * 100}%` }}></div>
+                  </div>
+                </div>
+              )}
            </div>
         </div>
 
-        {/* ĐỒNG HỒ ĐẾM NGƯỢC ĐƠN HIỆN TẠI */}
-        <div className="bg-[#bd4a1c] rounded-[2rem] p-6 text-white text-center shadow-xl relative border border-[#a44216]">
-          <p className="text-xs font-black mb-4 uppercase tracking-wider text-orange-100">
+        {/* ĐỒNG HỒ ĐẾM NGƯỢC CA GIAO */}
+        <div className="bg-gray-900 rounded-[2rem] p-6 text-white text-center shadow-xl relative border border-gray-800">
+          <p className="text-xs font-black mb-4 uppercase tracking-widest text-orange-400">
             Hôm nay, ĐANG CHỐT ĐƠN {timeLeft.active.name}
           </p>
           <div className="flex justify-center items-center gap-3">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl w-24 h-24 flex items-center justify-center shadow-inner">
-              <span className="text-5xl font-black">{String(timeLeft.totalMinutes).padStart(2, '0')}</span>
+            <div className="bg-gray-800 rounded-2xl w-20 h-24 flex items-center justify-center shadow-inner border border-gray-700">
+              <span className="text-5xl font-black text-white drop-shadow-lg">{String(timeLeft.totalMinutes).padStart(2, '0')}</span>
             </div>
-            <span className="text-4xl font-black pb-2 opacity-80 animate-pulse">:</span>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl w-24 h-24 flex items-center justify-center shadow-inner">
-              <span className="text-5xl font-black">{String(timeLeft.seconds).padStart(2, '0')}</span>
+            <span className="text-4xl font-black pb-2 opacity-50 text-gray-500 animate-pulse">:</span>
+            <div className="bg-gray-800 rounded-2xl w-20 h-24 flex items-center justify-center shadow-inner border border-gray-700">
+              <span className="text-5xl font-black text-orange-500 drop-shadow-lg">{String(timeLeft.seconds).padStart(2, '0')}</span>
             </div>
           </div>
-          <div className="bg-black/20 inline-block px-4 py-2 rounded-full mt-5">
-            {/* THÊM CHỮ "TRƯỚC" VÀO ĐÂY */}
-            <p className="text-[10px] font-bold text-orange-100 uppercase">
-              Giao: {timeLeft.active.delivery} • Chốt trước: {timeLeft.active.cutoff}
+          <div className="bg-gray-800 inline-block px-4 py-2 rounded-xl mt-5 border border-gray-700">
+            <p className="text-[10px] font-bold text-gray-300 uppercase">
+              Giao: <strong className="text-white">{timeLeft.active.delivery}</strong> • Chốt trước: <strong className="text-orange-400">{timeLeft.active.cutoff}</strong>
             </p>
           </div>
         </div>
 
-        {/* CỤM 5 NÚT DỊCH VỤ HIỆN ĐẠI */}
+        {/* CỤM 5 NÚT DỊCH VỤ HIỆN ĐẠI (TÔNG MÀU MỚI) */}
         <div>
           <div className="grid grid-cols-2 gap-3 mb-3">
-             <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-                <div className="bg-orange-50 p-4 rounded-full text-orange-600 shadow-inner">
+             <button onClick={() => router.push('/do-an')} className="bg-white p-5 rounded-3xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all group">
+                <div className="bg-orange-50 p-4 rounded-[1.5rem] text-orange-600 shadow-inner group-hover:bg-orange-600 group-hover:text-white transition-colors">
                   <Utensils size={28}/>
                 </div>
                 <span className="font-black text-gray-900 text-sm">ĐỒ ĂN</span>
              </button>
              
-             <button onClick={() => router.push('/thuc-uong')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-                <div className="bg-orange-50 p-4 rounded-full text-orange-600 shadow-inner">
+             <button onClick={() => router.push('/thuc-uong')} className="bg-white p-5 rounded-3xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all group">
+                <div className="bg-amber-50 p-4 rounded-[1.5rem] text-amber-600 shadow-inner group-hover:bg-amber-600 group-hover:text-white transition-colors">
                   <Coffee size={28}/>
                 </div>
                 <span className="font-black text-gray-900 text-sm">THỨC UỐNG</span>
              </button>
              
-             <button onClick={() => router.push('/giao-hang')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-                <div className="bg-blue-50 p-4 rounded-full text-blue-600 shadow-inner">
+             <button onClick={() => router.push('/giao-hang')} className="bg-white p-5 rounded-3xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all group">
+                <div className="bg-blue-50 p-4 rounded-[1.5rem] text-blue-600 shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <Box size={28}/>
                 </div>
                 <span className="font-black text-gray-900 text-sm">GỬI HÀNG</span>
              </button>
              
-             <button onClick={() => router.push('/dat-xe')} className="bg-white p-5 rounded-2xl flex flex-col items-center gap-3 shadow-sm border border-gray-200 active:scale-95 transition-all">
-                <div className="bg-green-50 p-4 rounded-full text-green-600 shadow-inner">
+             <button onClick={() => router.push('/dat-xe')} className="bg-white p-5 rounded-3xl flex flex-col items-center gap-3 shadow-sm border border-gray-100 active:scale-95 transition-all group">
+                <div className="bg-green-50 p-4 rounded-[1.5rem] text-green-600 shadow-inner group-hover:bg-green-600 group-hover:text-white transition-colors">
                   <Car size={28}/>
                 </div>
                 <span className="font-black text-gray-900 text-sm">ĐẶT XE</span>
              </button>
           </div>
 
-          {/* NÚT MUA HỘ ĐA NĂNG */}
           <button 
             onClick={() => router.push('/mua-ho')} 
-            className="w-full bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-200 active:scale-95 transition-all mb-2"
+            className="w-full bg-gray-900 p-5 rounded-[2rem] flex items-center justify-between shadow-lg border-2 border-gray-800 active:scale-95 transition-all mb-2"
           >
              <div className="flex items-center gap-4">
-                <div className="bg-purple-50 p-3 rounded-full text-purple-600 shadow-inner">
+                <div className="bg-gray-800 p-3 rounded-2xl text-yellow-400 shadow-inner">
                   <ShoppingBag size={24}/>
                 </div>
                 <div className="text-left">
-                  <span className="font-black text-gray-900 text-sm block uppercase">Mua Hộ Đa Năng</span>
-                  <span className="text-[10px] text-gray-500 font-bold">Thuốc tây, đồ chợ, mỹ phẩm...</span>
+                  <span className="font-black text-white text-base block uppercase tracking-wider">Mua Hộ Đa Năng</span>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase">Thuốc tây, đồ chợ, mỹ phẩm...</span>
                 </div>
              </div>
-             <ChevronRight size={20} className="text-gray-400" />
+             <ChevronRight size={24} className="text-gray-500" />
           </button>
-        </div>
-
-        {/* BẢNG TỔNG HỢP 4 KHUNG GIỜ */}
-        <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-200">
-          <h2 className="font-black text-gray-900 text-base mb-4 flex items-center gap-2 uppercase tracking-wider">
-            <Clock className="text-orange-500" size={20} /> Lịch Giao Nóng Hôm Nay
-          </h2>
-          <div className="grid grid-cols-1 gap-3">
-            {schedules.map((s, idx) => {
-               const isActive = timeLeft?.active.id === s.id;
-               return (
-                 <div key={s.id} className={`flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${isActive ? 'bg-orange-50 border-orange-500 shadow-sm' : 'bg-gray-50 border-gray-100'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black shadow-inner ${isActive ? 'bg-orange-600 text-white' : 'bg-white text-gray-400 border border-gray-200'}`}>
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <h3 className={`font-black uppercase text-sm ${isActive ? 'text-orange-700' : 'text-gray-700'}`}>{s.name}</h3>
-                        <p className="text-[10px] font-bold text-gray-500 mt-0.5 uppercase">Giao: {s.delivery}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {/* THÊM CHỮ "TRƯỚC" VÀO ĐÂY */}
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chốt đơn trước</p>
-                      <p className={`text-lg font-black ${isActive ? 'text-orange-600' : 'text-gray-900'}`}>{s.cutoff}</p>
-                    </div>
-                 </div>
-               )
-            })}
-          </div>
         </div>
 
         {/* GỢI Ý NÓNG SỐT */}
@@ -273,8 +298,8 @@ export default function HomePage() {
            </h2>
            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
               
-              <div onClick={() => router.push('/do-an')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-200 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
-                 <img src="https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/bun-rieu.jpg" alt="Bún Riêu" className="w-full h-32 object-cover rounded-xl mb-3"/>
+              <div onClick={() => router.push('/do-an')} className="min-w-[220px] bg-white rounded-[2rem] p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
+                 <img src="https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/bun-rieu.jpg" alt="Bún Riêu" className="w-full h-32 object-cover rounded-2xl mb-3"/>
                  <div className="flex gap-1.5 mb-2">
                     <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded flex items-center gap-1">
                       <Star size={10} className="fill-orange-600"/> 4.8
@@ -283,13 +308,13 @@ export default function HomePage() {
                  </div>
                  <h3 className="font-black text-sm text-gray-900 leading-tight mb-1">Bún Riêu Cua Biển Chà Là</h3>
                  <div className="flex justify-between items-center mt-3">
-                    <span className="text-orange-600 font-black text-base">45.000đ</span>
-                    <button className="bg-orange-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg">Đặt Ngay</button>
+                    <span className="text-orange-600 font-black text-lg">45.000đ</span>
+                    <button className="bg-gray-900 text-white font-bold text-xs px-3 py-2 rounded-xl">Đặt Ngay</button>
                  </div>
               </div>
 
-              <div onClick={() => router.push('/do-an')} className="min-w-[220px] bg-white rounded-2xl p-3 shadow-sm border border-gray-200 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
-                 <img src="https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/com-tam.webp" alt="Cơm Tấm" className="w-full h-32 object-cover rounded-xl mb-3"/>
+              <div onClick={() => router.push('/do-an')} className="min-w-[220px] bg-white rounded-[2rem] p-3 shadow-sm border border-gray-100 flex-shrink-0 active:scale-95 transition-transform cursor-pointer">
+                 <img src="https://uoqwsfltlbdqwwmwunzp.supabase.co/storage/v1/object/public/mon-an/com-tam.webp" alt="Cơm Tấm" className="w-full h-32 object-cover rounded-2xl mb-3"/>
                  <div className="flex gap-1.5 mb-2">
                     <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded flex items-center gap-1">
                       <Star size={10} className="fill-orange-600"/> 4.9
@@ -298,8 +323,8 @@ export default function HomePage() {
                  </div>
                  <h3 className="font-black text-sm text-gray-900 leading-tight mb-1">Cơm Tấm Sườn Bì Ốp La</h3>
                  <div className="flex justify-between items-center mt-3">
-                    <span className="text-orange-600 font-black text-base">40.000đ</span>
-                    <button className="bg-orange-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg">Đặt Ngay</button>
+                    <span className="text-orange-600 font-black text-lg">40.000đ</span>
+                    <button className="bg-gray-900 text-white font-bold text-xs px-3 py-2 rounded-xl">Đặt Ngay</button>
                  </div>
               </div>
 
@@ -307,83 +332,71 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* POPUP HỒ SƠ */}
+      {/* POPUP HỒ SƠ - FIX DARKMODE 100% */}
       {showProfile && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md sm:rounded-[2rem] rounded-t-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl border-4 border-orange-100 animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
               <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                <User className="text-orange-600"/> Hồ sơ của bạn
+                <User className="text-orange-600"/> Cập Nhật Hồ Sơ
               </h2>
-              <button onClick={() => setShowProfile(false)} className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200">
+              <button onClick={() => setShowProfile(false)} className="bg-gray-100 p-2 rounded-full text-gray-900 active:scale-95">
                 <X size={20}/>
               </button>
             </div>
             
-            <div className="space-y-4 mb-6">
+            <div className="space-y-4 mb-8">
               <div className="relative">
-                <User className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                <User className="absolute left-4 top-4 text-gray-400" size={20} />
                 <input 
-                  type="text" 
-                  value={tempName} 
-                  onChange={(e) => setTempName(e.target.value)} 
-                  placeholder="Tên của bạn..." 
-                  style={{ color: '#111827', backgroundColor: '#f9fafb' }} 
-                  className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
+                  type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="Tên Cô/Chú..." 
+                  className="w-full p-4 pl-12 border-2 border-gray-100 rounded-2xl outline-orange-500 font-black text-gray-900 bg-gray-50 placeholder-gray-400" 
                 />
               </div>
               <div className="relative">
-                <Phone className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                <Phone className="absolute left-4 top-4 text-gray-400" size={20} />
                 <input 
-                  type="tel" 
-                  value={tempPhone} 
-                  onChange={(e) => setTempPhone(e.target.value)} 
-                  placeholder="Số điện thoại..." 
-                  style={{ color: '#111827', backgroundColor: '#f9fafb' }} 
-                  className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
+                  type="tel" value={tempPhone} onChange={(e) => setTempPhone(e.target.value)} placeholder="Số điện thoại..." 
+                  className="w-full p-4 pl-12 border-2 border-gray-100 rounded-2xl outline-orange-500 font-black text-gray-900 bg-gray-50 placeholder-gray-400" 
                 />
               </div>
               <div className="relative">
-                <MapPin className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                <MapPin className="absolute left-4 top-4 text-gray-400" size={20} />
                 <input 
-                  type="text" 
-                  value={tempAddress} 
-                  onChange={(e) => setTempAddress(e.target.value)} 
-                  placeholder="Địa chỉ mặc định..." 
-                  style={{ color: '#111827', backgroundColor: '#f9fafb' }} 
-                  className="w-full p-3 pl-10 border border-gray-200 rounded-xl outline-orange-600 font-bold placeholder:text-gray-400" 
+                  type="text" value={tempAddress} onChange={(e) => setTempAddress(e.target.value)} placeholder="Địa chỉ thường gọi..." 
+                  className="w-full p-4 pl-12 border-2 border-gray-100 rounded-2xl outline-orange-500 font-black text-gray-900 bg-gray-50 placeholder-gray-400" 
                 />
               </div>
             </div>
             
-            <button onClick={handleSaveProfile} className="w-full bg-orange-600 text-white font-black text-lg py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+            <button onClick={handleSaveProfile} className="w-full bg-orange-600 text-white font-black text-lg py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_10px_20px_rgba(234,88,12,0.3)]">
               <Save size={20} /> LƯU THÔNG TIN
             </button>
           </div>
         </div>
       )}
 
-      {/* THANH LIÊN HỆ DƯỚI CÙNG */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto z-40 rounded-t-3xl flex justify-around items-center pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <a href="tel:0911089103" className="flex flex-col items-center gap-1 w-1/3">
-          <div className="bg-green-100 p-3 rounded-full border border-green-200 shadow-inner">
-            <Phone size={22} className="text-green-600 fill-green-600"/>
+      {/* THANH LIÊN HỆ DƯỚI CÙNG (DOCK) */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-xl border-t border-gray-100 max-w-md mx-auto z-40 rounded-t-[2.5rem] flex justify-around items-center pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <a href="tel:0911089103" className="flex flex-col items-center gap-1.5 w-1/3 active:scale-95 transition-transform">
+          <div className="bg-green-50 p-3 rounded-2xl border border-green-100 text-green-600">
+            <Phone size={22} className="fill-green-600"/>
           </div>
-          <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Gọi Trực Tiếp</span>
+          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Gọi Ngay</span>
         </a>
         
-        <a href="https://zalo.me/0911089103" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 w-1/3">
-          <div className="bg-blue-100 p-3 rounded-full border border-blue-200 shadow-inner">
-            <MessageSquare size={22} className="text-blue-600 fill-blue-600"/>
+        <a href="https://zalo.me/0911089103" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1.5 w-1/3 active:scale-95 transition-transform">
+          <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 text-blue-600">
+            <MessageSquare size={22} className="fill-blue-600"/>
           </div>
-          <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Chat Zalo</span>
+          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Zalo Chat</span>
         </a>
         
-        <a href="https://m.me/GiaoNongCaMau" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 w-1/3">
-          <div className="bg-blue-50 p-3 rounded-full border border-blue-200 shadow-inner">
-            <MessageCircle size={22} className="text-blue-600 fill-blue-600"/>
+        <a href="https://m.me/GiaoNongCaMau" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1.5 w-1/3 active:scale-95 transition-transform">
+          <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-indigo-600">
+            <MessageCircle size={22} className="fill-indigo-600"/>
           </div>
-          <span className="text-[10px] font-black text-gray-600 uppercase mt-1">Messenger</span>
+          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Messenger</span>
         </a>
       </div>
 
