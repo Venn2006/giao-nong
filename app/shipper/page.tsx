@@ -139,7 +139,7 @@ export default function ShipperApp() {
   return (
     <div className="min-h-screen bg-[#f1f5f9] font-sans pb-24 max-w-md mx-auto shadow-2xl relative">
       
-      {/* MODAL CÀI ĐẶT TÀI XẾ */}
+      {/* MODAL CÀI ĐẶT TÀI XẾ - ĐÃ FIX DARKMODE ÉP CHỮ ĐEN NỀN TRẮNG */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
            <div className="bg-white p-6 rounded-[2rem] w-full max-w-sm shadow-2xl animate-in zoom-in-95">
@@ -153,15 +153,27 @@ export default function ShipperApp() {
               
               <div className="space-y-4 mb-6">
                  <div>
-                   <label className="text-[10px] font-black uppercase text-gray-400 ml-1">Tên của bạn</label>
-                   <input type="text" value={shipperInfo.name} onChange={e => setShipperInfo({...shipperInfo, name: e.target.value})} placeholder="Vd: Nguyễn Văn A" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold mt-1 outline-blue-500" />
+                   <label className="text-[10px] font-black uppercase text-gray-400 ml-1 block mb-1">Tên của bạn</label>
+                   <input 
+                     type="text" 
+                     value={shipperInfo.name} 
+                     onChange={e => setShipperInfo({...shipperInfo, name: e.target.value})} 
+                     placeholder="Vd: Nguyễn Văn A" 
+                     className="w-full p-4 bg-white text-gray-900 border-2 border-blue-100 rounded-xl font-black outline-blue-500 focus:border-blue-500 placeholder-gray-400" 
+                   />
                  </div>
                  <div>
-                   <label className="text-[10px] font-black uppercase text-gray-400 ml-1">Số điện thoại gọi khách</label>
-                   <input type="tel" value={shipperInfo.phone} onChange={e => setShipperInfo({...shipperInfo, phone: e.target.value})} placeholder="Vd: 0901234567" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold mt-1 outline-blue-500" />
+                   <label className="text-[10px] font-black uppercase text-gray-400 ml-1 block mb-1">Số điện thoại gọi khách</label>
+                   <input 
+                     type="tel" 
+                     value={shipperInfo.phone} 
+                     onChange={e => setShipperInfo({...shipperInfo, phone: e.target.value})} 
+                     placeholder="Vd: 0901234567" 
+                     className="w-full p-4 bg-white text-gray-900 border-2 border-blue-100 rounded-xl font-black outline-blue-500 focus:border-blue-500 placeholder-gray-400" 
+                   />
                  </div>
               </div>
-              <button onClick={handleSaveProfile} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl active:scale-95 transition-transform flex justify-center items-center gap-2">
+              <button onClick={handleSaveProfile} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl active:scale-95 transition-transform flex justify-center items-center gap-2 shadow-[0_8px_20px_rgba(37,99,235,0.3)]">
                 <Save size={18}/> LƯU THÔNG TIN
               </button>
            </div>
@@ -301,7 +313,7 @@ export default function ShipperApp() {
                      </span>
                   </div>
 
-                  {/* NÚT ĐIỀU PHỐI (CHẶNG 1 / CHẶNG 2 CHUẨN GIAO NÓNG) */}
+                  {/* NÚT ĐIỀU PHỐI */}
                   {['pending', 'tx1_picking', 'at_midpoint', 'tx2_delivering'].includes(order.status) && (
                     <div className="space-y-3 mt-2">
                       {order.gps_location && (
@@ -310,7 +322,6 @@ export default function ShipperApp() {
                           </a>
                       )}
 
-                      {/* ĐỒ ĂN */}
                       {isFood && (
                         <>
                           {order.status === 'pending' && <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg"><Truck className="inline mr-2" size={20}/> [CHẶNG 1] NHẬN ĐƠN, ĐI MUA</button>}
@@ -320,7 +331,6 @@ export default function ShipperApp() {
                         </>
                       )}
 
-                      {/* GIAO HÀNG */}
                       {isPackage && (
                         <>
                           {order.status === 'pending' && <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg"><Package className="inline mr-2" size={20}/> [CHẶNG 1] ĐI GOM KIỆN HÀNG NÀY</button>}
@@ -330,7 +340,6 @@ export default function ShipperApp() {
                         </>
                       )}
 
-                      {/* ĐẶT XE */}
                       {isRide && (
                         <>
                           {order.status === 'pending' && <button onClick={() => updateStatus(order.id, 'tx2_delivering')} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-green-400"><Car className="inline mr-2" size={20}/> [TÀI XẾ] NHẬN CUỐC, ĐẾN ĐÓN KHÁCH</button>}
@@ -338,7 +347,6 @@ export default function ShipperApp() {
                         </>
                       )}
 
-                      {/* MUA HỘ ĐA NĂNG */}
                       {isErrand && (
                         <>
                           {order.status === 'pending' && <button onClick={() => updateStatus(order.id, 'tx1_picking')} className="w-full bg-purple-600 text-white font-black py-5 rounded-2xl text-base active:scale-95 shadow-lg border-[4px] border-purple-400"><ShoppingBag className="inline mr-2" size={20}/> [CHẶNG 1] NHẬN ĐI MUA HỘ</button>}
