@@ -53,9 +53,10 @@ export default function HomePage() {
     seconds: 0
   });
 
-  // HÀM TÍNH RANK VIP CHUẨN LIÊN MINH CỦA SẾP
+  // CÔNG THỨC LEO RANK LIÊN MINH CHUẨN XÁC CỦA SẾP
   const calculateRank = (spent: number) => {
-    const points = Math.floor(spent / 100000); // 100k = 1 điểm
+    // 100k = 1 điểm
+    const points = Math.floor(spent / 100000); 
     
     if (spent >= 500000000) return { rank: 'Thách Đấu', discount: 20, points, next: null, color: 'from-red-600 to-orange-500', icon: Crown };
     if (spent >= 200000000) return { rank: 'Đại Cao Thủ', discount: 18, points, next: 500000000, color: 'from-rose-500 to-pink-700', icon: Crown };
@@ -69,37 +70,53 @@ export default function HomePage() {
     return { rank: 'Đồng', discount: 0, points, next: 5000000, color: 'from-orange-500 to-orange-700', icon: Shield };
   };
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const savedUser = localStorage.getItem("giao_nong_user");
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        if (parsed.name) setUserName(parsed.name);
-        if (parsed.phone) setUserPhone(parsed.phone);
-        setTempName(parsed.name || "");
-        setTempPhone(parsed.phone || "");
-        setTempAddress(parsed.address || "");
+  const fetchUserData = async () => {
+    const savedUser = localStorage.getItem("giao_nong_user");
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      if (parsed.name) setUserName(parsed.name);
+      if (parsed.phone) setUserPhone(parsed.phone);
+      setTempName(parsed.name || "");
+      setTempPhone(parsed.phone || "");
+      setTempAddress(parsed.address || "");
 
-        // QUÉT TỔNG TIỀN ĐÃ MUA ĐỂ NÂNG RANK VIP
-        if (parsed.phone) {
-          const { data } = await supabase
-            .from('orders')
-            .select('total_amount')
-            .eq('customer_phone', parsed.phone)
-            .eq('status', 'completed');
+      // FIX LỖI: QUÉT DATA SIÊU CHUẨN, ÉP KIỂU NUMBER VÀ XÓA KHOẢNG TRẮNG SĐT
+      if (parsed.phone) {
+        const safePhone = parsed.phone.trim();
+        const { data, error } = await supabase
+          .from('orders')
+          .select('total_amount, status')
+          .eq('customer_phone', safePhone)
+          .eq('status', 'completed'); // CHỈ CỘNG ĐIỂM KHI ĐÃ HOÀN TẤT ĐƠN
 
-          if (data) {
-            const total = data.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-            setTotalSpent(total);
-            const vipData = calculateRank(total);
-            setVipInfo(vipData);
-            localStorage.setItem('giao_nong_vip', JSON.stringify({ discount: vipData.discount, rank: vipData.rank }));
-          }
+        if (error) {
+          console.error("Lỗi lấy điểm:", error);
+        } else if (data) {
+          // Ép cứng kiểu Number để không bị dính chữ (0334000)
+          const total = data.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+          setTotalSpent(total);
+          
+          const vipData = calculateRank(total);
+          setVipInfo(vipData);
+          localStorage.setItem('giao_nong_vip', JSON.stringify({ discount: vipData.discount, rank: vipData.rank }));
         }
       }
-    };
-    
+    }
+  };
+
+  useEffect(() => {
     fetchUserData();
+
+    // FIX LỖI: LẮNG NGHE REALTIME ĐỂ NHẢY ĐIỂM NGAY LẬP TỨC KHI SHIPPER GIAO XONG
+    const savedUser = localStorage.getItem("giao_nong_user");
+    let phoneToListen = "";
+    if (savedUser) {
+       phoneToListen = JSON.parse(savedUser).phone?.trim();
+    }
+    const sub = supabase.channel('home_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        if (phoneToListen) fetchUserData();
+      }).subscribe();
 
     const timer = setInterval(() => {
       const now = new Date();
@@ -132,7 +149,10 @@ export default function HomePage() {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      supabase.removeChannel(sub);
+    };
   }, []);
 
   const handleSaveProfile = () => {
@@ -140,21 +160,20 @@ export default function HomePage() {
       alert("Cô/Chú vui lòng điền ít nhất Tên và Số điện thoại nhé!");
       return;
     }
-    const userData = { name: tempName, phone: tempPhone, address: tempAddress };
+    const userData = { name: tempName, phone: tempPhone.trim(), address: tempAddress };
     localStorage.setItem("giao_nong_user", JSON.stringify(userData));
     setUserName(tempName);
-    setUserPhone(tempPhone);
+    setUserPhone(tempPhone.trim());
     setShowProfile(false);
-    window.location.reload(); // Tải lại để tính Rank tức thì
+    fetchUserData(); // Gọi lại hàm lấy điểm ngay sau khi lưu tên
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfaf1] font-sans pb-32 max-w-md mx-auto shadow-2xl relative">
+    <div className="min-h-screen bg-[#fcfaf1] font-sans pb-32 max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
       
       {/* HEADER TÍCH HỢP LOGO GIAO NÓNG XỊN SÒ MÀU CAM */}
       <header className="bg-white p-4 sticky top-0 z-20 shadow-sm rounded-b-2xl flex justify-between items-center">
         <div className="flex items-center gap-2">
-          {/* LOGO GIAO NÓNG CUSTOM */}
           <div className="bg-orange-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200 relative">
              <Flame size={24} className="text-yellow-300 fill-yellow-300 absolute -top-1 -right-1"/>
              <Truck size={22} className="text-white"/>
@@ -168,7 +187,6 @@ export default function HomePage() {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* NÚT CHUÔNG LỊCH SỬ ĐƠN HÀNG */}
           <button onClick={() => router.push('/don-hang')} className="relative bg-orange-50 p-2.5 rounded-xl active:scale-95 transition-transform border border-orange-100">
              <Bell size={20} className="text-orange-600" />
              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
@@ -207,7 +225,7 @@ export default function HomePage() {
            
            <div className="flex justify-between items-end relative z-10 border-t border-white/20 pt-4">
               <div>
-                <p className="text-[10px] font-bold uppercase opacity-80 mb-0.5 flex items-center gap-1"><Zap size={10}/> Điểm tích lũy (1đ = 1k)</p>
+                <p className="text-[10px] font-bold uppercase opacity-80 mb-0.5 flex items-center gap-1"><Zap size={10}/> Điểm tích lũy (1đ = 100k)</p>
                 <p className="text-3xl font-black drop-shadow-md leading-none">{vipInfo.points.toLocaleString('vi-VN')}</p>
               </div>
               {vipInfo.next && (
@@ -356,7 +374,7 @@ export default function HomePage() {
               <div className="relative">
                 <Phone className="absolute left-4 top-4 text-gray-400" size={20} />
                 <input 
-                  type="tel" value={tempPhone} onChange={(e) => setTempPhone(e.target.value)} placeholder="Số điện thoại..." 
+                  type="tel" value={tempPhone} onChange={(e) => setTempPhone(e.target.value)} placeholder="Số điện thoại (để tích điểm)..." 
                   className="w-full p-4 pl-12 border-2 border-gray-100 rounded-2xl outline-orange-500 font-black text-gray-900 bg-gray-50 placeholder-gray-400" 
                 />
               </div>
