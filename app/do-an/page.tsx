@@ -173,13 +173,25 @@ export default function DoAnMenu() {
     setShowCustom(false); setMonDangChon(null); setGhiChuMon(""); setSoLuong(1); setCustomQuan(""); setCustomAddress("");
   };
 
+  // TÍNH NĂNG MỚI: TĂNG GIẢM XÓA TRỰC TIẾP TRONG GIỎ HÀNG
+  const handleUpdateQuantity = (id: string, delta: number) => {
+    const updatedCart = cart.map(item => {
+      if (item.id === id) {
+        return { ...item, soLuong: item.soLuong + delta };
+      }
+      return item;
+    }).filter(item => item.soLuong > 0);
+    setCart(updatedCart);
+    localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart));
+  };
+
   const handleRemoveItem = (idToRemove: string) => {
     const updatedCart = cart.filter(item => item.id !== idToRemove);
     setCart(updatedCart);
     localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart));
   };
 
-  // CÔNG THỨC MỚI CỦA SẾP
+  // CÔNG THỨC TÍNH TOÁN
   const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
   const cartTotal = cart.reduce((sum, item) => sum + (item.gia * item.soLuong), 0);
 
@@ -449,7 +461,7 @@ export default function DoAnMenu() {
         )}
       </div>
 
-      {/* POPUP CHỌN SỐ LƯỢNG */}
+      {/* POPUP CHỌN SỐ LƯỢNG KHI THÊM MỚI TỪ QUÁN */}
       {quanDangChon && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-t-[3rem] p-8 slide-in-from-bottom-full duration-300 shadow-[0_-20px_50px_rgba(0,0,0,0.2)]">
@@ -476,7 +488,7 @@ export default function DoAnMenu() {
         </div>
       )}
 
-      {/* GIỎ HÀNG THÔNG MINH */}
+      {/* GIỎ HÀNG THÔNG MINH CÓ NÚT TĂNG GIẢM TRỰC TIẾP */}
       {totalQty > 0 && !quanDangChon && !monDangChon && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-xl border-t border-gray-200 max-w-md mx-auto rounded-t-[2.5rem] z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.1)]">
           <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm mb-4 max-h-[55vh] overflow-y-auto">
@@ -487,15 +499,25 @@ export default function DoAnMenu() {
              
              <div className="space-y-4">
                {cart.map(i => (
-                 <div key={i.id} className="flex justify-between items-start gap-2 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
-                   <div className="max-w-[65%]">
-                     <p className="font-black text-sm text-gray-900 leading-tight"><span className="text-orange-600">{i.soLuong}x</span> {i.tenMon}</p>
+                 <div key={i.id} className="flex justify-between items-center gap-2 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                   <div className="max-w-[50%]">
+                     <p className="font-black text-sm text-gray-900 leading-tight line-clamp-2">{i.tenMon}</p>
                      <p className="text-[9px] text-gray-500 font-bold uppercase mt-1">Tại: {i.tenQuan}</p>
                      {i.ghiChu && <p className="text-[10px] text-gray-600 italic mt-0.5">"{i.ghiChu}"</p>}
                    </div>
-                   <div className="flex items-center gap-3">
+                   
+                   <div className="flex flex-col items-end gap-2">
                      <p className="font-black text-sm text-gray-900">{(i.gia * i.soLuong).toLocaleString('vi-VN')}đ</p>
-                     <button onClick={() => handleRemoveItem(i.id)} className="text-red-400 p-1.5 bg-red-50 rounded-lg active:scale-95 transition-transform hover:bg-red-100"><Trash2 size={16} /></button>
+                     {/* BỘ NÚT TĂNG GIẢM XÓA TRỰC TIẾP */}
+                     <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
+                        <button onClick={() => handleUpdateQuantity(i.id, -1)} className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm active:scale-95 transition-transform">
+                           {i.soLuong === 1 ? <Trash2 size={14} className="text-red-500" /> : <Minus size={14} className="text-gray-900" />}
+                        </button>
+                        <span className="font-black text-sm w-6 text-center text-gray-900">{i.soLuong}</span>
+                        <button onClick={() => handleUpdateQuantity(i.id, 1)} className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm active:scale-95 transition-transform text-orange-600">
+                           <Plus size={14} />
+                        </button>
+                     </div>
                    </div>
                  </div>
                ))}
@@ -503,7 +525,7 @@ export default function DoAnMenu() {
 
              {/* LUẬT 2: CẢNH BÁO VƯỢT QUÁ 5 MÓN (ĐỎ) */}
              {isOverLimit && (
-                <div className="bg-red-50 p-3 rounded-xl border border-red-200 mt-4 mb-4">
+                <div className="bg-red-50 p-3 rounded-xl border border-red-200 mt-4 mb-4 animate-in fade-in">
                   <div className="flex gap-2 items-center mb-1.5">
                     <AlertTriangle className="text-red-600 shrink-0" size={18}/>
                     <p className="text-[11px] font-black text-red-700 leading-tight uppercase">Vượt quá 5 món / Đơn</p>
@@ -516,7 +538,7 @@ export default function DoAnMenu() {
 
              {/* LUẬT 3: YÊU CẦU CỌC VÌ ĐƠN > 200K (XANH DƯƠNG) */}
              {requireDeposit && !isOverLimit && (
-                <div className="bg-blue-50 p-3 rounded-xl border border-blue-200 mt-4 mb-4">
+                <div className="bg-blue-50 p-3 rounded-xl border border-blue-200 mt-4 mb-4 animate-in fade-in">
                   <div className="flex gap-2 items-center mb-1.5">
                     <ShieldAlert className="text-blue-600 shrink-0" size={18}/>
                     <p className="text-[11px] font-black text-blue-700 leading-tight uppercase">Đơn lớn ({finalTotal.toLocaleString('vi-VN')}đ) - Yêu cầu Cọc</p>
