@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   Calendar,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  Star
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -83,7 +84,7 @@ export default function BossDashboard() {
 
   // TÍNH NĂNG MỚI: DUYỆT ĐƠN CHUYỂN KHOẢN / CỌC
   const handleApprove = async (id: string) => {
-    if (window.confirm('Boss xác nhận ĐÃ NHẬN TIỀN và Duyệt đơn này cho Shipper chạy?')) {
+    if (window.confirm('Boss xác nhận ĐÃ NHẬN TIỀN / HOẶC XÁC NHẬN Duyệt đơn này cho Shipper chạy?')) {
       await supabase
         .from('orders')
         .update({ is_approved: true })
@@ -255,7 +256,7 @@ export default function BossDashboard() {
               <ShieldAlert className="text-red-600" size={24}/>
               <div>
                 <p className="font-black text-red-700 text-sm uppercase">Cần Boss Duyệt Gấp!</p>
-                <p className="text-xs font-bold text-red-600/80">Có {pendingApprovalCount} đơn đang đợi check Bank/Cọc</p>
+                <p className="text-xs font-bold text-red-600/80">Có {pendingApprovalCount} đơn đang đợi check</p>
               </div>
             </div>
           </div>
@@ -276,6 +277,8 @@ export default function BossDashboard() {
                 const isRide = summaryText.includes('ĐẶT XE');
                 const isErrand = summaryText.includes('MUA HỘ');
                 const isWaitingApprove = order.is_approved === false && order.status === 'pending';
+                // FIX LỖI 1: KHAI BÁO BIẾN ĐỂ CHECK XEM ĐÂY LÀ ĐƠN TIỀN MẶT HAY CHUYỂN KHOẢN
+                const isCash = order.payment_method === 'cash' || order.payment_method === 'cash_sender' || order.payment_method === 'cash_receiver';
                 
                 return (
                   <div 
@@ -369,6 +372,23 @@ export default function BossDashboard() {
                             </a>
                           )}
                         </div>
+
+                        {/* FIX 2: HIỂN THỊ ĐÁNH GIÁ (SAO & REVIEW) CỦA KHÁCH DÀNH CHO SHIPPER */}
+                        {order.rating && (
+                          <div className="bg-green-50 border-2 border-green-200 p-4 rounded-xl mt-3 shadow-sm">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Khách Đánh Giá:</span>
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star key={star} size={14} className={star <= order.rating ? "fill-yellow-500 text-yellow-500" : "text-gray-300"} />
+                                ))}
+                              </div>
+                            </div>
+                            {order.review && <p className="text-sm font-bold text-gray-800 italic bg-white p-3 rounded-lg border border-green-100">"{order.review}"</p>}
+                          </div>
+                        )}
+                        {/* KẾT THÚC VÙNG ĐÁNH GIÁ */}
+
                       </div>
 
                       <div className="md:w-64 flex flex-col justify-between items-end border-l border-gray-100 pl-4">
@@ -377,18 +397,19 @@ export default function BossDashboard() {
                             {order.total_amount?.toLocaleString('vi-VN')}đ
                           </p>
                           <p className={`text-[10px] font-black mt-2 px-3 py-1 rounded-lg uppercase tracking-wider inline-block text-white shadow-sm ${isWaitingApprove ? 'bg-red-600 animate-pulse' : 'bg-gray-800'}`}>
-                            {order.payment_method === 'bank' ? '🏦 BANK / CỌC (CHECK KỸ)' : 
+                            {order.payment_method === 'bank' ? '🏦 KHÁCH CHUYỂN KHOẢN' : 
                              order.payment_method === 'cash_sender' ? '💵 THU NGƯỜI GỬI' : 
                              order.payment_method === 'cash_receiver' ? '💵 THU NGƯỜI NHẬN' : '💵 THU TIỀN MẶT'}
                           </p>
                         </div>
 
-                        {/* KIỂM TRA: NẾU CHƯA DUYỆT THÌ HIỆN NÚT DUYỆT, NẾU DUYỆT RỒI THÌ HIỆN NÚT HỦY */}
                         {isWaitingApprove ? (
                           <div className="w-full mt-4 p-3 bg-red-50 border-2 border-red-500 rounded-xl shadow-sm text-center">
                              <p className="text-xs font-black text-red-600 mb-3 flex items-center justify-center gap-1"><ShieldCheck size={16}/> ĐƠN CHỜ BOSS DUYỆT</p>
                              <button onClick={() => handleApprove(order.id)} className="w-full bg-green-600 text-white font-black py-4 rounded-lg active:scale-95 shadow-md mb-2 flex justify-center items-center gap-1">
-                               <CheckCircle2 size={18}/> ĐÃ NHẬN TIỀN - DUYỆT
+                               <CheckCircle2 size={18}/> 
+                               {/* FIX 1: HIỂN THỊ CHỮ DỰA VÀO PHƯƠNG THỨC THANH TOÁN */}
+                               {isCash ? 'XÁC NHẬN - CHO ĐI MUA' : 'ĐÃ NHẬN TIỀN - DUYỆT'}
                              </button>
                              <button onClick={() => updateStatus(order.id, 'cancelled')} className="w-full bg-red-100 text-red-600 font-black py-3 rounded-lg active:scale-95 border border-red-200">
                                HỦY BỎ (BOM HÀNG)
