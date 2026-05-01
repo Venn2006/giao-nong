@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Plus, Minus, X, Star, ChevronRight, Store, Loader2, Clock, ShoppingCart, CheckCircle2, Utensils, CupSoda, Flame, Zap, Trash2, Banknote, CreditCard, Sparkles, QrCode, ShieldAlert } from "lucide-react";
+import { ArrowLeft, MapPin, Plus, Minus, X, Star, ChevronRight, Store, Loader2, Clock, ShoppingCart, CheckCircle2, Utensils, CupSoda, Flame, Zap, Trash2, Banknote, CreditCard, Sparkles, QrCode, ShieldAlert, StoreIcon, AlertCircle, AlertTriangle, HeartHandshake } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -29,6 +29,7 @@ export default function DoAnMenu() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank'>('cash');
   const [showQR, setShowQR] = useState(false);
   const [generatedOrderCode, setGeneratedOrderCode] = useState("");
+  const [vipDiscountPercent, setVipDiscountPercent] = useState(0);
 
   const schedules = [
     { id: 'sang', name: 'CA SÁNG', cutoff: '06:30', delivery: '07:00-08:00', cutoffHour: 6, cutoffMin: 30 },
@@ -69,12 +70,30 @@ export default function DoAnMenu() {
       setUserName(parsedUser.name || "");
       setUserPhone(parsedUser.phone || "");
       setDeliveryAddress(parsedUser.address || "");
+      
+      if (parsedUser.phone) {
+         supabase.from('orders').select('total_amount').eq('customer_phone', parsedUser.phone.trim()).eq('status', 'completed')
+         .then(({ data }) => {
+            if (data) {
+               const total = data.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0);
+               let discount = 0;
+               if (total >= 500000000) discount = 20;
+               else if (total >= 200000000) discount = 18;
+               else if (total >= 120000000) discount = 15;
+               else if (total >= 80000000) discount = 12;
+               else if (total >= 50000000) discount = 9;
+               else if (total >= 30000000) discount = 7;
+               else if (total >= 15000000) discount = 5;
+               else if (total >= 5000000) discount = 2;
+               setVipDiscountPercent(discount);
+            }
+         });
+      }
     }
 
     const fetchMenu = async () => {
       setIsLoading(true);
       const { data: menuData } = await supabase.from('menu_items').select('*').order('id', { ascending: true });
-      
       if (menuData && menuData.length > 0) {
         const normalizedData = menuData.map((item: any) => {
           const categoryName = item['Danh mục'] || item.danh_muc || item.category || "Khác";
@@ -86,14 +105,11 @@ export default function DoAnMenu() {
             type: item.type || detectType(categoryName)
           };
         }).filter(item => item.name); 
-
         setMonGoc(normalizedData);
         
         const categoriesMap = new Map();
         normalizedData.forEach(item => {
-          if (!categoriesMap.has(item.category)) { 
-            categoriesMap.set(item.category, { id: item.category, ten: item.category, type: item.type }); 
-          }
+          if (!categoriesMap.has(item.category)) categoriesMap.set(item.category, { id: item.category, ten: item.category, type: item.type }); 
         });
         const catArray = Array.from(categoriesMap.values());
         setDanhMuc(catArray);
@@ -109,15 +125,11 @@ export default function DoAnMenu() {
     const timer = setInterval(() => {
       const now = new Date();
       let activeSchedule = schedules[0];
-      let found = false;
       for (let i = 0; i < schedules.length; i++) {
         const cutoffDate = new Date();
         cutoffDate.setHours(schedules[i].cutoffHour, schedules[i].cutoffMin, 0, 0);
-        if (now < cutoffDate) {
-          activeSchedule = schedules[i]; found = true; break;
-        }
+        if (now < cutoffDate) { activeSchedule = schedules[i]; break; }
       }
-      if (!found) activeSchedule = schedules[0];
       setTimeLeft({ active: activeSchedule });
     }, 1000);
 
@@ -167,64 +179,70 @@ export default function DoAnMenu() {
     localStorage.setItem("giao_nong_cart", JSON.stringify(updatedCart));
   };
 
+  // CÔNG THỨC MỚI CỦA SẾP
   const totalQty = cart.reduce((sum, item) => sum + item.soLuong, 0);
   const cartTotal = cart.reduce((sum, item) => sum + (item.gia * item.soLuong), 0);
 
-  // BẢNG GIÁ SHIP ĐỘNG
+  // LUẬT 1: PHÍ SHIP ĐỘNG
   const getServiceFee = (qty: number) => {
     if (qty === 0) return 0;
-    if (qty <= 3) return 12000;
+    if (qty <= 3) return 13000;
     if (qty === 4) return 14000;
-    if (qty === 5) return 15000;
-    if (qty === 6) return 16000;
-    if (qty === 7) return 17000;
-    if (qty === 8) return 18000;
-    if (qty === 9) return 19000;
-    return 20000; // Tối đa 10 món trở lên
+    return 15000; // Tối đa 5 món
   };
   const serviceFee = getServiceFee(totalQty);
-  const finalTotal = cartTotal + serviceFee;
+  
+  // TÍNH TOÁN VIP DISCOUNT
+  const discountAmount = Math.floor((cartTotal * vipDiscountPercent) / 100);
+  const finalTotal = (cartTotal - discountAmount) + serviceFee;
+
+  // LUẬT 2 & 3: TỐI ĐA 5 MÓN & TRÊN 200K ÉP CỌC
+  const isOverLimit = totalQty > 5;
+  const requireDeposit = finalTotal > 200000;
+
+  // Ép trạng thái Bank nếu đơn quá 200k
+  useEffect(() => {
+    if (requireDeposit && paymentMethod === 'cash') {
+      setPaymentMethod('bank');
+    }
+  }, [requireDeposit, paymentMethod]);
 
   // TÍCH ĐIỂM
-  const diemTichLuy = Math.floor(finalTotal / 1000); 
-  const tienDoiDuoc = diemTichLuy * 10;
-
-  // CHỐNG BOM HÀNG (CỌC 50%)
-  const isLargeOrder = totalQty > 5;
-  const depositAmount = Math.round((finalTotal * 0.5) / 1000) * 1000; 
+  const diemTichLuy = Math.floor(finalTotal / 100000); 
 
   const handleCreateOrder = async () => {
     if (cart.length === 0) return alert("Giỏ hàng trống!");
     if (!deliveryAddress || !userName || !userPhone) return alert("Điền đủ Tên, SĐT, Địa chỉ nha Cô/Chú!");
-
-    // Ép cọc nếu đơn lớn
-    if (isLargeOrder && paymentMethod === 'cash') {
-      return alert("Do đơn nhiều món và tuyến giao xa, Cô/Chú vui lòng chọn Chuyển khoản cọc 50% để tài xế an tâm mua hàng nhé ạ!");
-    }
+    if (isOverLimit) return alert("Dạ tối đa 5 món/đơn. Cô chú vui lòng tách đơn giúp tụi con nha!");
 
     setIsSubmitting(true);
-    localStorage.setItem("giao_nong_user", JSON.stringify({ name: userName, phone: userPhone, address: deliveryAddress }));
+    localStorage.setItem("giao_nong_user", JSON.stringify({ name: userName, phone: userPhone.trim(), address: deliveryAddress }));
     const orderId = "DA" + Math.floor(1000 + Math.random() * 9000); 
+    
     let orderDetails = cart.map(item => {
        let text = `🔸 ${item.soLuong}x ${item.tenMon}\n   📍 Tại: ${item.tenQuan}`;
        if (item.ghiChu) text += `\n   📝 Ghi chú: ${item.ghiChu}`;
        return text;
     }).join("\n\n");
+    
+    if (vipDiscountPercent > 0) orderDetails += `\n\n🎟️ [HẠNG VIP] Giảm giá ${vipDiscountPercent}%: -${discountAmount.toLocaleString('vi-VN')}đ`;
+
     const summary = `🍲 [ĐỒ ĂN - ${timeLeft.active.name}]\n\n${orderDetails}`;
     const fullAddress = `📍 GIAO ĐẾN: ${deliveryAddress}`;
     
     const newOrder = {
       order_code: orderId, 
       customer_name: userName, 
-      customer_phone: userPhone, 
+      customer_phone: userPhone.trim(), 
       delivery_address: fullAddress,
-      gps_location: deliveryAddress, // MỞ BẢN ĐỒ CHO TÀI XẾ
-      shipping_note: isLargeOrder ? `ĐƠN LỚN - YÊU CẦU CỌC 50% (${depositAmount.toLocaleString()}đ)` : `Gom đơn theo ca. ${paymentMethod === 'bank' ? 'KHÁCH SẼ CHUYỂN KHOẢN' : 'THU TIỀN MẶT TẠI CHỖ'}`, 
+      gps_location: deliveryAddress, 
+      shipping_note: requireDeposit ? `ĐƠN > 200K - KHÁCH SẼ CK/CỌC TRƯỚC` : `Gom đơn theo ca. THU TIỀN MẶT`, 
       items_summary: summary,
       total_amount: finalTotal, 
       shipping_fee: serviceFee, 
       payment_method: paymentMethod, 
-      status: 'pending'
+      status: 'pending',
+      is_approved: paymentMethod === 'cash' && !requireDeposit ? true : false
     };
 
     const { error } = await supabase.from('orders').insert([newOrder]);
@@ -236,8 +254,7 @@ export default function DoAnMenu() {
       localStorage.removeItem("giao_nong_cart"); 
       localStorage.setItem("last_order_code", orderId); 
       
-      // KIỂM TRA MỞ POPUP QR NẾU BANK HOẶC BỊ ÉP CỌC
-      if (paymentMethod === 'bank' || isLargeOrder) {
+      if (paymentMethod === 'bank' || requireDeposit) {
         setGeneratedOrderCode(orderId);
         setShowQR(true);
       } else {
@@ -256,7 +273,7 @@ export default function DoAnMenu() {
   if (isLoading && danhMuc.length === 0) return <div className="min-h-screen bg-[#fcfaf1] flex justify-center items-center"><Loader2 className="animate-spin text-orange-500" size={40} /></div>;
 
   return (
-    <div className="min-h-screen bg-[#fcfaf1] pb-[380px] font-sans max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#fcfaf1] pb-[420px] font-sans max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
       
       {/* POPUP QR THANH TOÁN HOẶC CỌC */}
       {showQR && (
@@ -265,24 +282,21 @@ export default function DoAnMenu() {
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-600">
               <QrCode size={32} />
             </div>
-            <h2 className="text-2xl font-black text-gray-900 mb-1">{isLargeOrder ? "Đặt Cọc 50%" : "Chuyển Khoản"}</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-1">Chuyển Khoản / Đặt Cọc</h2>
             <p className="text-xs font-bold text-gray-500 mb-6 px-2">
-              {isLargeOrder 
-                ? "Do tuyến đường giao xa, mong Cô/Chú thông cảm chuyển cọc trước để Shipper an tâm mua đồ ăn ạ ❤️" 
-                : "Quét mã để thanh toán đơn hàng"}
+              Cô/Chú quét mã VietQR bên dưới để thanh toán/cọc cho đơn hàng nhé ạ!
             </p>
             
             <div className="bg-gray-50 p-2 rounded-3xl mb-6 border-2 border-dashed border-gray-200">
-              {/* SẾP THAY THÔNG TIN BANK TẠI ĐÂY NHA */}
               <img 
-                src={`https://img.vietqr.io/image/MB-0901234567-print.png?amount=${isLargeOrder ? depositAmount : finalTotal}&addInfo=${generatedOrderCode}&accountName=GIAO NONG CAMAU`} 
+                src={`https://img.vietqr.io/image/MB-0901234567-print.png?amount=${finalTotal}&addInfo=${generatedOrderCode}&accountName=GIAO NONG CAMAU`} 
                 alt="VietQR" 
                 className="w-full rounded-2xl"
               />
             </div>
             
             <div className="bg-orange-50 p-4 rounded-2xl mb-6 border border-orange-100 shadow-sm flex flex-col gap-1">
-               <span>Số tiền: <strong className="text-xl text-orange-600">{(isLargeOrder ? depositAmount : finalTotal).toLocaleString('vi-VN')}đ</strong></span>
+               <span>Số tiền: <strong className="text-xl text-orange-600">{finalTotal.toLocaleString('vi-VN')}đ</strong></span>
                <span className="text-[11px] text-gray-500">Nội dung CK: <strong className="text-sm text-gray-900 tracking-widest">{generatedOrderCode}</strong></span>
             </div>
             
@@ -325,9 +339,6 @@ export default function DoAnMenu() {
                    {cat.ten}
                  </button>
                ))}
-               {danhMuc.filter(c => c.type === mainTab).length === 0 && (
-                 <p className="text-xs text-gray-500 font-bold p-2 italic">Chưa có danh mục nào...</p>
-               )}
             </div>
           </>
         )}
@@ -335,7 +346,6 @@ export default function DoAnMenu() {
 
       <div className="p-4 space-y-6">
         {monDangChon ? (
-          // MÀN HÌNH 2: CHỌN QUÁN
           <div className="space-y-4 animate-in slide-in-from-right-4">
             <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest px-1">Danh sách quán đang bán</h2>
             {isLoading ? <Loader2 className="animate-spin mx-auto text-orange-500 mt-10" size={32}/> : 
@@ -345,26 +355,35 @@ export default function DoAnMenu() {
                  <p className="font-bold text-gray-500 text-sm">Chưa có quán nào đăng ký bán món này.</p>
                </div>
              ) : 
-             quananList.map((quan) => (
-              <div key={quan.id} onClick={() => quan.is_open !== false && setQuanDangChon(quan)} className={`bg-white rounded-[2rem] overflow-hidden shadow-sm border transition-all ${quan.is_open === false ? 'opacity-60 grayscale' : 'active:scale-[0.98] cursor-pointer'}`}>
-                <div className="h-40 w-full relative bg-gray-100">
-                  <img src={quan.image_url || getCategoryImage(monDangChon.category, mainTab)} alt={quan.restaurant_name} className="w-full h-full object-cover" />
-                  <div className="absolute top-3 left-3 bg-white/90 px-2 py-1 rounded-lg flex items-center gap-1 font-black text-xs text-gray-900 shadow-sm"><Star size={12} className="text-yellow-500 fill-yellow-500"/> 4.9</div>
-                  
-                  {quan.is_open !== false && (
-                    <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white px-3 py-1.5 rounded-xl font-black text-[10px] uppercase shadow-lg flex items-center gap-1.5 border border-white/20">
-                      <Clock size={12} className="text-orange-400"/> Giao {timeLeft.active.name}
-                    </div>
-                  )}
+             quananList.map((quan) => {
+               const statusText = quan.trang_thai_quan || (quan.is_open === false ? 'Đã đóng cửa' : 'Đang mở cửa');
+               const isOpen = statusText === 'Đang mở cửa';
+               const isClosed = statusText === 'Đã đóng cửa';
+               const isSoon = statusText === 'Chưa mở cửa';
 
-                  {quan.is_open === false && <div className="absolute inset-0 bg-red-600/20 backdrop-blur-[2px] flex items-center justify-center"><span className="bg-red-600 text-white px-6 py-2 rounded-full font-black uppercase text-sm shadow-xl">Tạm nghỉ cửa hàng</span></div>}
+               return (
+                <div key={quan.id} onClick={() => isOpen && setQuanDangChon(quan)} className={`bg-white rounded-[2rem] overflow-hidden shadow-sm border transition-all ${!isOpen ? 'opacity-70 grayscale-[50%]' : 'active:scale-[0.98] cursor-pointer hover:shadow-md'}`}>
+                  <div className="h-40 w-full relative bg-gray-100">
+                    <img src={quan.image_url || getCategoryImage(monDangChon.category, mainTab)} alt={quan.restaurant_name} className="w-full h-full object-cover" />
+                    <div className="absolute top-3 left-3 bg-white/90 px-2 py-1 rounded-lg flex items-center gap-1 font-black text-xs text-gray-900 shadow-sm"><Star size={12} className="text-yellow-500 fill-yellow-500"/> 4.9</div>
+                    
+                    {isOpen && <div className="absolute bottom-3 right-3 bg-green-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-xl font-black text-[10px] uppercase shadow-lg flex items-center gap-1.5 border border-white/20"><StoreIcon size={12} /> Đang mở cửa</div>}
+                    {isSoon && <div className="absolute inset-0 bg-yellow-600/30 backdrop-blur-[2px] flex items-center justify-center"><span className="bg-yellow-500 text-white px-5 py-2 rounded-full font-black uppercase text-sm shadow-xl flex items-center gap-2"><Clock size={16}/> Chưa mở cửa</span></div>}
+                    {isClosed && <div className="absolute inset-0 bg-red-800/40 backdrop-blur-[2px] flex items-center justify-center"><span className="bg-red-600 text-white px-5 py-2 rounded-full font-black uppercase text-sm shadow-xl flex items-center gap-2"><AlertCircle size={16}/> Đã đóng cửa</span></div>}
+                  </div>
+                  <div className="p-5 flex justify-between items-center">
+                    <div className="max-w-[65%]">
+                      <h3 className="text-lg font-black text-gray-900 leading-tight mb-1">{quan.restaurant_name}</h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase flex items-center gap-1"><MapPin size={10} className="text-orange-500"/> {quan.address || 'Cà Mau'}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase">Giá</p>
+                      <p className={`text-xl font-black ${isOpen ? 'text-orange-600' : 'text-gray-500'}`}>{quan.price.toLocaleString('vi-VN')}đ</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-5 flex justify-between items-center">
-                  <div className="max-w-[65%]"><h3 className="text-lg font-black text-gray-900 leading-tight mb-1">{quan.restaurant_name}</h3><p className="text-[10px] text-gray-500 font-bold uppercase flex items-center gap-1"><MapPin size={10} className="text-orange-500"/> {quan.address || 'Cà Mau'}</p></div>
-                  <div className="text-right flex-shrink-0 ml-2"><p className="text-[10px] text-gray-400 font-bold uppercase">Giá</p><p className="text-xl font-black text-orange-600">{quan.price.toLocaleString('vi-VN')}đ</p><p className="text-[9px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded mt-1 inline-block">Trả đơn: {timeLeft.active.delivery}</p></div>
-                </div>
-              </div>
-            ))}
+               );
+             })}
 
             <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-[2rem] p-5 text-white shadow-lg relative overflow-hidden mt-6">
                <div className="absolute -right-2 -bottom-2 opacity-20"><Store size={100} /></div>
@@ -403,7 +422,6 @@ export default function DoAnMenu() {
                     <div className="flex justify-between items-center px-1 pb-1"><span className="text-[10px] font-black text-orange-600">Gom chuyến</span><div className="bg-gray-900 text-white p-1 rounded-lg"><Plus size={12}/></div></div>
                   </div>
                 ))}
-                {monGoc.filter(m => m.type === mainTab).length === 0 && <p className="text-xs font-bold text-gray-400 italic">Chưa có món nổi bật...</p>}
               </div>
             </div>
 
@@ -426,9 +444,6 @@ export default function DoAnMenu() {
                   </div>
                 </div>
               ))}
-              {monGoc.filter(m => m.category === activeCategory && m.type === mainTab).length === 0 && (
-                 <div className="text-center py-10 opacity-50"><Utensils size={40} className="mx-auto mb-2 text-gray-400"/> <p className="font-bold text-gray-500">Chưa có món nào trong mục này...</p></div>
-              )}
             </div>
           </>
         )}
@@ -461,7 +476,7 @@ export default function DoAnMenu() {
         </div>
       )}
 
-      {/* GIỎ HÀNG THÔNG MINH - ĐÃ FIX DARKMODE, BẢNG GIÁ, ĐIỂM, BOM HÀNG */}
+      {/* GIỎ HÀNG THÔNG MINH */}
       {totalQty > 0 && !quanDangChon && !monDangChon && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-xl border-t border-gray-200 max-w-md mx-auto rounded-t-[2.5rem] z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.1)]">
           <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm mb-4 max-h-[55vh] overflow-y-auto">
@@ -486,35 +501,49 @@ export default function DoAnMenu() {
                ))}
              </div>
 
-             {/* CẢNH BÁO BOM HÀNG CÓ LỜI GIẢI THÍCH DỄ THƯƠNG */}
-             {isLargeOrder && (
+             {/* LUẬT 2: CẢNH BÁO VƯỢT QUÁ 5 MÓN (ĐỎ) */}
+             {isOverLimit && (
                 <div className="bg-red-50 p-3 rounded-xl border border-red-200 mt-4 mb-4">
                   <div className="flex gap-2 items-center mb-1.5">
-                    <ShieldAlert className="text-red-600 shrink-0" size={18}/>
-                    <p className="text-[11px] font-black text-red-700 leading-tight uppercase">Đơn lớn ({totalQty} món): Yêu cầu cọc {depositAmount.toLocaleString()}đ</p>
+                    <AlertTriangle className="text-red-600 shrink-0" size={18}/>
+                    <p className="text-[11px] font-black text-red-700 leading-tight uppercase">Vượt quá 5 món / Đơn</p>
                   </div>
-                  <p className="text-[10px] text-red-600/80 font-bold pl-6 italic">
-                    * Do tuyến đường giao xa (huyện), mong Cô/Chú thông cảm cọc trước để tài xế an tâm mua hàng ạ! ❤️
+                  <p className="text-[10px] text-red-800 font-bold pl-6 italic">
+                    * Dạ để đảm bảo đồ ăn giữ được độ nóng và tài xế chở an toàn, hệ thống chỉ nhận tối đa 5 món/đơn. Cô/Chú mua nhiều hơn vui lòng tách làm 2 đơn giúp tụi con nhé! ❤️
                   </p>
                 </div>
              )}
 
-             {/* TÍCH ĐIỂM KHÁCH HÀNG UI */}
+             {/* LUẬT 3: YÊU CẦU CỌC VÌ ĐƠN > 200K (XANH DƯƠNG) */}
+             {requireDeposit && !isOverLimit && (
+                <div className="bg-blue-50 p-3 rounded-xl border border-blue-200 mt-4 mb-4">
+                  <div className="flex gap-2 items-center mb-1.5">
+                    <ShieldAlert className="text-blue-600 shrink-0" size={18}/>
+                    <p className="text-[11px] font-black text-blue-700 leading-tight uppercase">Đơn lớn ({finalTotal.toLocaleString('vi-VN')}đ) - Yêu cầu Cọc</p>
+                  </div>
+                  <p className="text-[10px] text-blue-800 font-bold pl-6 italic">
+                    * Dạ do đơn hàng giá trị cao, tài xế không mang đủ tiền mặt để ứng trước. Cô/Chú anh chị thông cảm chuyển khoản hoặc cọc giúp tụi con để tài xế an tâm mua hàng nóng hổi nha! ❤️
+                  </p>
+                </div>
+             )}
+
              <div className="mt-5 bg-orange-50 p-3 rounded-xl border border-orange-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-orange-500 fill-orange-500" />
                     <span className="text-[11px] font-black text-orange-900 uppercase">Tích lũy đơn này</span>
                 </div>
-                <div className="text-right">
-                    <span className="text-sm font-black text-orange-600">+{diemTichLuy} điểm</span>
-                    <p className="text-[9px] font-bold text-orange-500 uppercase mt-0.5">(Đổi được {tienDoiDuoc.toLocaleString('vi-VN')}đ)</p>
-                </div>
+                <span className="text-sm font-black text-orange-600">+{diemTichLuy} điểm</span>
              </div>
 
-             {/* HÓA ĐƠN BÓC TÁCH */}
              <div className="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-2 mb-4">
                <div className="flex justify-between items-center"><span className="text-gray-500 text-xs font-bold uppercase">Tổng tiền món</span><span className="font-black text-gray-900 text-sm">{cartTotal.toLocaleString('vi-VN')}đ</span></div>
                <div className="flex justify-between items-center"><span className="text-gray-500 text-xs font-bold uppercase">Phí gom chuyến</span><span className="font-black text-orange-600 text-sm">{serviceFee.toLocaleString('vi-VN')}đ</span></div>
+               {vipDiscountPercent > 0 && (
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-green-600 text-xs font-black uppercase flex items-center gap-1"><HeartHandshake size={14}/> VIP Giảm ({vipDiscountPercent}%)</span>
+                    <span className="font-black text-green-600 text-sm">-{discountAmount.toLocaleString('vi-VN')}đ</span>
+                  </div>
+               )}
              </div>
 
              <div className="mt-2 pt-5 border-t border-gray-100 space-y-3">
@@ -523,19 +552,24 @@ export default function DoAnMenu() {
                 <input type="text" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Địa chỉ giao: Số nhà, tên đường..." className="w-full p-3 border border-gray-300 rounded-xl text-sm font-black bg-white text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500" />
              </div>
 
-             {/* CHỌN PHƯƠNG THỨC THANH TOÁN */}
              <div className="mt-5">
                 <p className="text-[10px] text-gray-500 font-bold uppercase mb-2">Thanh toán (Chọn 1)</p>
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => !isLargeOrder && setPaymentMethod('cash')} 
-                    className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'cash' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-200 text-gray-500'} ${isLargeOrder && 'opacity-30 grayscale cursor-not-allowed'}`}
+                    onClick={() => {
+                      if (requireDeposit) {
+                        alert("Đơn hàng trên 200k Cô/Chú vui lòng chọn Chuyển khoản/Cọc giúp tụi con nhé!");
+                        return;
+                      }
+                      setPaymentMethod('cash');
+                    }} 
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'cash' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-200 text-gray-500'} ${requireDeposit ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
                   >
                     <Banknote size={14}/> TIỀN MẶT
                   </button>
                   <button 
                     onClick={() => setPaymentMethod('bank')} 
-                    className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'bank' || isLargeOrder ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 border-2 transition-all ${paymentMethod === 'bank' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}
                   >
                     <CreditCard size={14}/> CHUYỂN KHOẢN
                   </button>
@@ -543,13 +577,13 @@ export default function DoAnMenu() {
              </div>
           </div>
 
-          <button onClick={handleCreateOrder} disabled={isSubmitting} className="w-full bg-gray-900 text-white p-5 rounded-[2rem] shadow-2xl flex justify-between items-center active:scale-95 transition-all">
+          <button onClick={handleCreateOrder} disabled={isSubmitting || isOverLimit} className={`w-full text-white p-5 rounded-[2rem] shadow-2xl mt-4 flex justify-between items-center transition-all ${isOverLimit ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 active:scale-95'}`}>
             <div className="text-left leading-none">
-              <p className="text-[10px] font-black text-gray-400 uppercase mb-1">{isLargeOrder ? 'Số tiền cần cọc' : 'Cần thanh toán'}</p>
-              <p className="text-2xl font-black text-orange-500">{(isLargeOrder ? depositAmount : finalTotal).toLocaleString('vi-VN')}đ</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase mb-1">{requireDeposit ? 'Số tiền cần cọc/CK' : 'Cần thanh toán'}</p>
+              <p className={`text-2xl font-black ${isOverLimit ? 'text-gray-200' : 'text-orange-500'}`}>{finalTotal.toLocaleString('vi-VN')}đ</p>
             </div>
-            <div className="bg-orange-600 px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg flex items-center gap-2">
-              {isSubmitting ? <Loader2 className="animate-spin" size={16}/> : 'Chốt Đơn'} <ChevronRight size={16}/>
+            <div className={`px-6 py-3 rounded-2xl font-black text-xs uppercase flex items-center gap-2 ${isOverLimit ? 'bg-gray-500 text-gray-300' : 'bg-orange-600 shadow-lg'}`}>
+              {isSubmitting ? <Loader2 className="animate-spin" size={16}/> : 'XÁC NHẬN ĐƠN'} <ChevronRight size={16}/>
             </div>
           </button>
         </div>
