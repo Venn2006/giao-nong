@@ -20,7 +20,12 @@ import {
   Gift,
   Phone,
   Save,
-  X
+  X,
+  MessageCircle,
+  Shield,
+  Award,
+  Crown,
+  Truck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
@@ -31,8 +36,9 @@ export default function HomePage() {
   const [userName, setUserName] = useState("Khách Mới");
   const [userPhone, setUserPhone] = useState("");
   const [totalSpent, setTotalSpent] = useState(0);
-  const [vipInfo, setVipInfo] = useState({ rank: 'Đồng', discount: 0, points: 0 });
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  // ĐÃ FIX LỖI COLOR VÀ ICON CHO THẺ VIP CHỐNG CRASH
+  const [vipInfo, setVipInfo] = useState<any>({ rank: 'Đồng', discount: 0, points: 0, color: 'from-orange-400 to-orange-600', icon: Shield });
 
   const [showProfile, setShowProfile] = useState(false);
   const [tempName, setTempName] = useState("");
@@ -50,18 +56,18 @@ export default function HomePage() {
     active: schedules[0], hours: 0, minutes: 0, seconds: 0
   });
 
-  // TÍNH RANK VIP CHUẨN XÁC
+  // TÍNH RANK VIP CHUẨN XÁC KÈM ĐỔI MÀU, ĐỔI ICON
   const calculateRank = (spent: number) => {
     const points = Math.floor(spent / 100000); 
-    if (spent >= 500000000) return { rank: 'Thách Đấu', discount: 20, points };
-    if (spent >= 200000000) return { rank: 'Đại Cao Thủ', discount: 18, points };
-    if (spent >= 120000000) return { rank: 'Cao Thủ', discount: 15, points };
-    if (spent >= 80000000) return { rank: 'Kim Cương', discount: 12, points };
-    if (spent >= 50000000) return { rank: 'Lục Bảo', discount: 9, points };
-    if (spent >= 30000000) return { rank: 'Bạch Kim', discount: 7, points };
-    if (spent >= 15000000) return { rank: 'Vàng', discount: 5, points };
-    if (spent >= 5000000) return { rank: 'Bạc', discount: 2, points };
-    return { rank: 'Đồng', discount: 0, points };
+    if (spent >= 500000000) return { rank: 'Thách Đấu', discount: 20, points, color: 'from-red-600 to-orange-500', icon: Crown };
+    if (spent >= 200000000) return { rank: 'Đại Cao Thủ', discount: 18, points, color: 'from-rose-500 to-pink-700', icon: Crown };
+    if (spent >= 120000000) return { rank: 'Cao Thủ', discount: 15, points, color: 'from-purple-500 to-indigo-600', icon: Award };
+    if (spent >= 80000000) return { rank: 'Kim Cương', discount: 12, points, color: 'from-blue-400 to-cyan-500', icon: Award };
+    if (spent >= 50000000) return { rank: 'Lục Bảo', discount: 9, points, color: 'from-emerald-400 to-green-600', icon: Shield };
+    if (spent >= 30000000) return { rank: 'Bạch Kim', discount: 7, points, color: 'from-slate-300 to-slate-500', icon: Shield };
+    if (spent >= 15000000) return { rank: 'Vàng', discount: 5, points, color: 'from-yellow-400 to-amber-500', icon: Shield };
+    if (spent >= 5000000) return { rank: 'Bạc', discount: 2, points, color: 'from-gray-300 to-gray-400', icon: Shield };
+    return { rank: 'Đồng', discount: 0, points, color: 'from-orange-500 to-orange-700', icon: Shield };
   };
 
   const fetchUserData = async () => {
@@ -89,7 +95,6 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    // IMPORT FONT BEBAS NEUE & CSS FLAME TỪ CLAUDE UX
     const style = document.createElement('style');
     style.innerHTML = `
       @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;900&display=swap');
@@ -102,7 +107,6 @@ export default function HomePage() {
 
     fetchUserData();
 
-    // REALTIME CỘNG ĐIỂM
     const savedUser = localStorage.getItem("giao_nong_user");
     let phoneToListen = "";
     if (savedUser) phoneToListen = JSON.parse(savedUser).phone?.trim();
@@ -111,7 +115,6 @@ export default function HomePage() {
         if (phoneToListen) fetchUserData();
       }).subscribe();
 
-    // ĐỒNG HỒ CA GIAO
     const timer = setInterval(() => {
       const now = new Date();
       let target = new Date();
@@ -153,15 +156,14 @@ export default function HomePage() {
   };
 
   const reviews = [
-    { name: "Bình Hưng", rating: 5, text: "Giao Đầm Dơi 35km cơm vẫn nóng hổi, shipper nhiệt tình!" },
-    { name: "Chị Thảo", rating: 5, text: "Gom đơn văn phòng mỗi ngày phí ship rẻ bèo. Đỉnh chóp." },
-    { name: "Anh Tuấn", rating: 4, text: "Trà sữa đá không bị tan, sẽ ủng hộ Giao Nóng dài dài." }
+    { name: "Anh Khang", rating: 5, text: "Giao Đầm Dơi 35km mà cơm vẫn nóng hổi, shipper nhiệt tình!" },
+    { name: "Chị Thảo", rating: 5, text: "Gom đơn công ty mỗi ngày phí ship rẻ bèo. Quá đỉnh." },
+    { name: "Tuấn Anh", rating: 4, text: "Trà sữa đá không bị tan, sẽ ủng hộ Giao Nóng dài dài." }
   ];
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 font-sans pb-32 max-w-md mx-auto shadow-2xl relative overflow-x-hidden flame-bg">
       
-      {/* 1. HEADER & LOCATION */}
       <header className="px-5 pt-6 pb-2 flex justify-between items-center relative z-10">
         <div onClick={() => setShowProfile(true)} className="flex items-center gap-3 cursor-pointer">
           <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
@@ -182,11 +184,16 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* 2. HERO SECTION & LIVE COUNTDOWN */}
       <div className="px-5 py-6 text-center relative z-10">
-        <h1 className="font-display text-6xl text-white glow-text mb-1 tracking-wider">
-          GIAO <span className="text-orange-500">NÓNG</span>
-        </h1>
+        <div className="flex items-center justify-center gap-2 mb-2">
+           <div className="bg-orange-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/50 relative border-2 border-orange-400">
+             <Flame size={24} className="text-yellow-300 fill-yellow-300 absolute -top-2 -right-2 drop-shadow-md animate-pulse"/>
+             <Truck size={22} className="text-white"/>
+           </div>
+           <h1 className="font-display text-5xl text-white glow-text tracking-wider mt-2">
+             GIAO <span className="text-orange-500">NÓNG</span>
+           </h1>
+        </div>
         <p className="text-zinc-400 text-sm font-medium mb-6">Đồ ăn Cà Mau - Bất chấp khoảng cách</p>
 
         <div className="glass-card rounded-[2rem] p-5 border-t border-orange-500/30 relative overflow-hidden">
@@ -215,7 +222,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 3. PROMO BANNER VIP */}
       <div className="px-5 mb-6">
         {totalSpent === 0 ? (
           <div onClick={() => setShowProfile(true)} className="bg-gradient-to-r from-orange-600 to-yellow-500 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_20px_rgba(234,88,12,0.3)] cursor-pointer active:scale-95 transition-transform">
@@ -226,17 +232,19 @@ export default function HomePage() {
             <div className="bg-white text-orange-600 p-2 rounded-full"><Gift size={20}/></div>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl p-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase text-orange-400 mb-1 flex items-center gap-1"><ShieldCheck size={12}/> Hạng {vipInfo.rank}</p>
-              <h3 className="text-sm font-bold text-white leading-tight">Bạn đang được giảm <strong className="text-orange-400">{vipInfo.discount}%</strong><br/>càng mua phí ship càng rẻ!</h3>
+          <div onClick={() => setShowProfile(true)} className={`bg-gradient-to-r ${vipInfo.color} border border-white/20 rounded-2xl p-4 flex items-center justify-between cursor-pointer active:scale-95 transition-transform shadow-lg relative overflow-hidden`}>
+            <div className="absolute -right-4 -bottom-4 opacity-10">
+              <vipInfo.icon size={80} />
             </div>
-            <div className="bg-zinc-700 text-orange-500 p-2 rounded-full"><TrendingUp size={20}/></div>
+            <div className="relative z-10">
+              <p className="text-[10px] font-black uppercase text-white/80 mb-1 flex items-center gap-1"><ShieldCheck size={12}/> Hạng {vipInfo.rank}</p>
+              <h3 className="text-sm font-bold text-white leading-tight">Bạn đang được giảm <strong className="text-yellow-300 font-black">{vipInfo.discount}%</strong><br/>càng mua phí ship càng rẻ!</h3>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-full relative z-10"><TrendingUp size={20}/></div>
           </div>
         )}
       </div>
 
-      {/* 4. SEARCH BAR */}
       <div className="px-5 mb-6">
         <div className="relative">
           <Search className="absolute left-4 top-4 text-zinc-500" size={20} />
@@ -248,7 +256,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 5. CATEGORIES GRID */}
       <div className="px-5 mb-8">
         <div className="grid grid-cols-4 gap-3">
           <button onClick={() => router.push('/do-an')} className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
@@ -278,7 +285,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 6. TRUST SIGNALS & STATS BAR */}
       <div className="px-5 mb-8">
         <div className="flex justify-between items-center bg-zinc-900 border border-zinc-800 rounded-2xl p-3 shadow-inner">
           <div className="text-center px-2 border-r border-zinc-800">
@@ -296,7 +302,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 7. SCHEDULE 4-CARD GRID */}
       <div className="px-5 mb-8">
         <h2 className="font-display text-2xl text-white mb-4 tracking-wide">CHỌN CA GIAO NGAY</h2>
         <div className="grid grid-cols-2 gap-3">
@@ -316,7 +321,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 8. HORIZONTAL REVIEWS */}
       <div className="pl-5 mb-10">
         <h2 className="font-display text-2xl text-white mb-4 tracking-wide flex items-center gap-2">KHÁCH NÓI GÌ <MessageCircle size={20} className="text-orange-500"/></h2>
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide pr-5">
@@ -335,7 +339,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 9. BOTTOM NAVIGATION BAR (RAISED CENTER BUTTON) */}
       <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800 h-16 rounded-t-3xl flex justify-around items-center px-4 z-50">
         <button className="flex flex-col items-center gap-1 active:scale-95 text-orange-500">
           <Home size={22} className="fill-orange-500/20"/>
@@ -346,7 +349,6 @@ export default function HomePage() {
           <span className="text-[9px] font-bold">Đơn Hàng</span>
         </button>
         
-        {/* RAISED CENTER BUTTON */}
         <button onClick={() => router.push('/do-an')} className="relative -top-5 flex flex-col items-center active:scale-95 transition-transform">
           <div className="bg-gradient-to-tr from-orange-600 to-yellow-500 w-14 h-14 rounded-full flex items-center justify-center shadow-[0_5px_20px_rgba(234,88,12,0.4)] border-4 border-[#09090b]">
             <Utensils size={24} className="text-white" />
@@ -355,6 +357,7 @@ export default function HomePage() {
         
         <button className="flex flex-col items-center gap-1 active:scale-95 text-zinc-500 hover:text-zinc-300 relative">
           <Bell size={22} />
+          <span className="absolute top-0 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           <span className="text-[9px] font-bold">Thông báo</span>
         </button>
         <button onClick={() => setShowProfile(true)} className="flex flex-col items-center gap-1 active:scale-95 text-zinc-500 hover:text-zinc-300">
@@ -363,7 +366,6 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* POPUP HỒ SƠ - DARKMODE (CHỮ ĐEN) */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl border-4 border-orange-100 animate-in zoom-in-95 duration-300">
